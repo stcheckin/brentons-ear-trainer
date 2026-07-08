@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Brenton's Ear Trainer</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: #121212;
+            color: #e0e0e0;
+            max-width: 700px;
+            margin: 40px auto;
+            padding: 20px;
+            text-align: center;
+        }
+        h1 { color: #fff; margin-bottom: 5px; }
+        .subtitle { color: #888; margin-bottom: 10px; }
+        
+        .selector-container {
+            margin: 20px 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+        select {
+            background: #2a2a2a;
+            color: #fff;
+            border: 1px solid #444;
+            padding: 8px 16px;
+            font-size: 16px;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        .toggle-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: #1e1e1e;
+            padding: 6px 12px;
+            border-radius: 20px;
+            border: 1px solid #333;
+        }
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 44px;
+            height: 24px;
+        }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #444;
+            transition: .3s;
+            border-radius: 24px;
+        }
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 16px; width: 16px;
+            left: 4px; bottom: 4px;
+            background-color: white;
+            transition: .3s;
+            border-radius: 50%;
+        }
+        input:checked + .slider { background-color: #007aff; }
+        input:checked + .slider:before { transform: translateX(20px); }
+        .toggle-label { font-size: 14px; font-weight: 500; color: #aaa; }
+
+        .range-panel {
+            background: #1e1e1e;
+            border: 1px solid #333;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px auto 25px auto;
+            max-width: 650px;
+        }
+        .range-title {
+            font-size: 15px;
+            color: #ffcc00;
+            margin-bottom: 15px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+        .range-fretboard {
+            display: flex;
+            background: #2d1a10;
+            border: 3px solid #140e0b;
+            border-radius: 6px;
+            min-height: 50px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        .range-fret {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 25px;
+            color: #aaa;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            border-right: 2px solid #d4af37;
+            background: #3a2215;
+            transition: background 0.15s, color 0.15s;
+            user-select: none;
+            padding: 12px 0;
+        }
+        .range-fret:first-child { 
+            border-right: 5px solid #fff; 
+            max-width: 50px; 
+            background: #222; 
+            color: #bbb; 
+        }
+        .range-fret:last-child { border-right: none; }
+        
+        .range-fret.in-range { background: #007aff; color: #fff; }
+        .range-fret.boundary { background: #0056b3; color: #fff; font-weight: 900; box-shadow: inset 0 0 10px rgba(255,255,255,0.4); }
+
+        .commands-hint {
+            color: #ffcc00;
+            font-size: 14px;
+            margin-bottom: 30px;
+            font-style: italic;
+        }
+        .card {
+            background: #1e1e1e;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+            margin-bottom: 20px;
+        }
+        button {
+            background: #007aff;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            font-size: 16px;
+            font-weight: bold;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.2s;
+            margin: 10px;
+        }
+        button:hover { background: #0056b3; }
+        button:disabled { background: #444; color: #888; cursor: not-allowed; }
+        
+        .status-box {
+            font-size: 18px;
+            margin: 20px 0;
+            padding: 15px;
+            border-radius: 6px;
+            background: #2a2a2a;
+            font-weight: 500;
+            min-height: 28px;
+        }
+        
+        .hint-box {
+            font-size: 20px;
+            font-weight: bold;
+            margin: 15px 0;
+            padding: 10px;
+            border-radius: 6px;
+            display: none;
+            background: #151515;
+        }
+        .pitch-low { color: #ff9500; }
+        .pitch-high { color: #ff3b30; }
+        .pitch-match { color: #4cd964; }
+
+        .stage-active { color: #007aff; font-weight: bold; }
+        .success { color: #4cd964; }
+        .target-display {
+            font-size: 48px;
+            font-weight: bold;
+            color: #ffcc00;
+            margin: 20px 0;
+            visibility: hidden;
+        }
+        
+        .fretboard {
+            display: flex;
+            flex-direction: column-reverse;
+            background: #2d1a10;
+            padding: 10px;
+            border-radius: 6px;
+            margin-top: 25px;
+            border: 2px solid #1a0f0a;
+            display: none;
+        }
+        .string {
+            display: flex;
+            height: 24px;
+            align-items: center;
+            position: relative;
+            border-bottom: 1px solid #555;
+        }
+        .string::before {
+            content: '';
+            position: absolute;
+            left: 0; right: 0; top: 50%;
+            height: var(--thickness, 1px);
+            background: #aaa;
+            z-index: 1;
+        }
+        .fret {
+            flex: 1;
+            position: relative;
+            height: 100%;
+            z-index: 2;
+            border-right: 3px solid #d4af37;
+        }
+        .fret:first-child { border-right: 5px solid #fff; max-width: 40px; }
+        .note-marker {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            width: 16px; height: 16px;
+            background: #ff3b30;
+            border-radius: 50%;
+            display: none;
+            box-shadow: 0 0 8px #ff3b30;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Brenton's Ear Trainer</h1>
+    <div class="subtitle">Custom Scale Ear Training Partner</div>
+    
+    <div class="selector-container">
+        <select id="root-select">
+            <option value="C">C</option>
+            <option value="C#">C# / Db</option>
+            <option value="D">D</option>
+            <option value="D#">D# / Eb</option>
+            <option value="E">E</option>
+            <option value="F">F</option>
+            <option value="F#">F# / Gb</option>
+            <option value="G">G</option>
+            <option value="G#">G# / Ab</option>
+            <option value="A">A</option>
+            <option value="A#">A# / Bb</option>
+            <option value="B">B</option>
+        </select>
+        
+        <select id="type-select">
+            <option value="major">Major Scale</option>
+            <option value="minor">Natural Minor Scale</option>
+        </select>
+
+        <div class="toggle-wrapper">
+            <span class="toggle-label">Use Hints</span>
+            <label class="switch">
+                <input type="checkbox" id="hints-toggle" checked>
+                <span class="slider"></span>
+            </label>
+        </div>
+    </div>
+
+    <div class="range-panel">
+        <div class="range-title" id="range-status-text">Fret Window Zone: 0 to 12 (Full Board)</div>
+        <div class="range-fretboard" id="range-selector-board">
+            <div class="range-fret in-range" data-fret="0">Open</div>
+            <div class="range-fret in-range" data-fret="1">1</div>
+            <div class="range-fret in-range" data-fret="2">2</div>
+            <div class="range-fret in-range" data-fret="3">3</div>
+            <div class="range-fret in-range" data-fret="4">4</div>
+            <div class="range-fret in-range" data-fret="5">5</div>
+            <div class="range-fret in-range" data-fret="6">6</div>
+            <div class="range-fret in-range" data-fret="7">7</div>
+            <div class="range-fret in-range" data-fret="8">8</div>
+            <div class="range-fret in-range" data-fret="9">9</div>
+            <div class="range-fret in-range" data-fret="10">10</div>
+            <div class="range-fret in-range" data-fret="11">11</div>
+            <div class="range-fret in-range" data-fret="12">12</div>
+        </div>
+    </div>
+
+    <div class="commands-hint">Hands-Free Active: Say "Next" to advance or "Repeat" to hear the note again!</div>
+
+    <div class="card">
+        <button id="start-btn">Start Session</button>
+        <button id="listen-btn" disabled>Play Note Again</button>
+        <button id="reveal-btn" disabled>Show Answer</button>
+
+        <div class="status-box" id="status">Select your scale and fret range, then click "Start Session".</div>
+        
+        <div class="hint-box" id="hint-display"></div>
+        
+        <div class="target-display" id="letter-display">C</div>
+
+        <div class="fretboard" id="fretboard">
+            <div class="string" style="--thickness: 1px;" data-string="E1"></div>
+            <div class="string" style="--thickness: 1.5px;" data-string="B"></div>
+            <div class="string" style="--thickness: 2px;" data-string="G"></div>
+            <div class="string" style="--thickness: 2.5px;" data-string="D"></div>
+            <div class="string" style="--thickness: 3px;" data-string="A"></div>
+            <div class="string" style="--thickness: 3.5px;" data-string="E6"></div>
+        </div>
+    </div>
+
+    <script>
+        const masterNotes = [
+            { name: 'E', freq: 82.41, string: 'E6', fret: 0 },
+            { name: 'F', freq: 87.31, string: 'E6', fret: 1 },
+            { name: 'F#', freq: 92.50, string: 'E6', fret: 2 },
+            { name: 'G', freq: 98.00, string: 'E6', fret: 3 },
+            { name: 'G#', freq: 103.83, string: 'E6', fret: 4 },
+            { name: 'A', freq: 110.00, string: 'A', fret: 0 },
+            { name: 'A#', freq: 116.54, string: 'A', fret: 1 },
+            { name: 'B', freq: 123.47, string: 'A', fret: 2 },
+            { name: 'C', freq: 130.81, string: 'A', fret: 3 },
+            { name: 'C#', freq: 138.59, string: 'A', fret: 4 },
+            { name: 'D', freq: 146.83, string: 'D', fret: 0 },
+            { name: 'D#', freq: 155.56, string: 'D', fret: 1 },
+            { name: 'E', freq: 164.81, string: 'D', fret: 2 },
+            { name: 'F', freq: 174.61, string: 'D', fret: 3 },
+            { name: 'F#', freq: 185.00, string: 'D', fret: 4 },
+            { name: 'G', freq: 196.00, string: 'G', fret: 0 },
+            { name: 'G#', freq: 207.65, string: 'G', fret: 1 },
+            { name: 'A', freq: 220.00, string: 'G', fret: 2 },
+            { name: 'A#', freq: 233.08, string: 'G', fret: 3 },
+            { name: 'B', freq: 246.94, string: 'B', fret: 0 },
+            { name: 'C', freq: 261.63, string: 'B', fret: 1 },
+            { name: 'C#', freq: 277.18, string: 'B', fret: 2 },
+            { name: 'D', freq: 293.66, string: 'B', fret: 3 },
+            { name: 'D#', freq: 311.13, string: 'B', fret: 4 },
+            { name: 'E', freq: 329.63, string: 'E1', fret: 0 },
+            { name: 'F', freq: 349.23, string: 'E1', fret: 1 },
+            { name: 'F#', freq: 369.99, string: 'E1', fret: 2 },
+            { name: 'G', freq: 392.00, string: 'E1', fret: 3 },
+            { name: 'G#', freq: 415.30, string: 'E1', fret: 4 },
+            { name: 'A', freq: 440.00, string: 'E1', fret: 5 },
+            { name: 'C', freq: 130.81, string: 'E6', fret: 8 },
+            { name: 'D', freq: 146.83, string: 'A', fret: 5 },
+            { name: 'E', freq: 164.81, string: 'A', fret: 7 },
+            { name: 'G', freq: 196.00, string: 'D', fret: 5 },
+            { name: 'A', freq: 220.00, string: 'D', fret: 7 },
+            { name: 'B', freq: 246.94, string: 'D', fret: 9 },
+            { name: 'C', freq: 261.63, string: 'D', fret: 10 },
+            { name: 'D', freq: 293.66, string: 'G', fret: 7 },
+            { name: 'E', freq: 329.63, string: 'G', fret: 9 },
+            { name: 'F', freq: 349.23, string: 'G', fret: 10 },
+            { name: 'G', freq: 392.00, string: 'B', fret: 8 },
+            { name: 'A', freq: 440.00, string: 'B', fret: 10 },
+            { name: 'B', freq: 493.88, string: 'E1', fret: 7 },
+            { name: 'C', freq: 523.25, string: 'E1', fret: 8 },
+            { name: 'D', freq: 587.33, string: 'E1', fret: 10 },
+            { name: 'E', freq: 659.25, string: 'E1', fret: 12 }
+        ];
+
+        let minFret = 0;
+        let maxFret = 12;
+        let firstClickFret = null;
+
+        let activeScaleNotes = [];
+        let audioCtx = null;
+        let currentNote = null;
+        let currentStage = 'idle'; 
+        let analyser = null;
+        let micStream = null;
+        let sampleBuffer = new Float32Array(2048);
+        
+        let isChecking = false;
+        let cooldownActive = false; 
+        
+        let consecutiveMatches = 0;
+        const REQUIRED_STREAK = 15; 
+        let activeSynthesizers = []; 
+
+        const startBtn = document.getElementById('start-btn');
+        const listenBtn = document.getElementById('listen-btn');
+        const revealBtn = document.getElementById('reveal-btn');
+        const statusDiv = document.getElementById('status');
+        const hintDisplay = document.getElementById('hint-display');
+        const letterDisplay = document.getElementById('letter-display');
+        const fretboardDiv = document.getElementById('fretboard');
+        const rootSelect = document.getElementById('root-select');
+        const typeSelect = document.getElementById('type-select');
+        const hintsToggle = document.getElementById('hints-toggle');
+        const rangeStatusText = document.getElementById('range-status-text');
+
+        function handleRangeSelection(fretNum) {
+            if (firstClickFret === null) {
+                firstClickFret = fretNum;
+                minFret = fretNum;
+                maxFret = fretNum;
+            } else {
+                minFret = Math.min(firstClickFret, fretNum);
+                maxFret = Math.max(firstClickFret, fretNum);
+                firstClickFret = null;
+            }
+            updateRangeUI();
+            buildActiveScale();
+        }
+
+        function updateRangeUI() {
+            rangeStatusText.innerText = `Fret Window Zone: ${minFret} to ${maxFret}`;
+            document.querySelectorAll('.range-fret').forEach(fretEl => {
+                let f = parseInt(fretEl.dataset.fret);
+                fretEl.className = 'range-fret';
+                if (f >= minFret && f <= maxFret) {
+                    fretEl.classList.add('in-range');
+                }
+                if (f === minFret || f === maxFret) {
+                    fretEl.classList.add('boundary');
+                }
+            });
+        }
+
+        function buildActiveScale() {
+            const rootName = rootSelect.value;
+            const scaleType = typeSelect.value;
+            
+            let scaleNoteNames = new Set();
+            let scaleTemplate = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+            let rootOffset = scaleTemplate.indexOf(rootName);
+            let steps = scaleType === 'major' ? [0,2,4,5,7,9,11] : [0,2,3,5,7,8,10];
+            
+            steps.forEach(st => {
+                scaleNoteNames.add(scaleTemplate[(rootOffset + st) % 12]);
+            });
+            
+            activeScaleNotes = masterNotes.filter(note => {
+                return scaleNoteNames.has(note.name) && note.fret >= minFret && note.fret <= maxFret;
+            });
+        }
+
+        document.querySelectorAll('.fretboard .string').forEach(str => {
+            for(let i=0; i<=12; i++) {
+                let fret = document.createElement('div');
+                fret.className = 'fret';
+                let marker = document.createElement('div');
+                marker.className = 'note-marker';
+                fret.appendChild(marker);
+                str.appendChild(fret);
+            }
+        });
+
+        function ensureAudioContext() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        }
+
+        startBtn.addEventListener('click', () => {
+            buildActiveScale();
+            ensureAudioContext();
+            
+            if (activeScaleNotes.length === 0) {
+                statusDiv.innerHTML = `<span style="color:#ff3b30">No matching scale notes found inside fret range! Expand range boundaries.</span>`;
+                return;
+            }
+
+            if (!micStream) {
+                setupMicrophone(); 
+                setupSpeechRecognition();
+            }
+            startBtn.innerText = "Next Note";
+            nextExercise();
+        });
+
+        // CRITICAL UPDATE: Manual click handler re-triggers stage loop validation sequence
+        listenBtn.addEventListener('click', () => { 
+            ensureAudioContext();
+            if (currentNote) {
+                triggerSequenceReset();
+            }
+        });
+        
+        revealBtn.addEventListener('click', () => {
+            letterDisplay.style.visibility = 'visible';
+            fretboardDiv.style.display = 'flex';
+            highlightFret(currentNote.string, currentNote.fret);
+        });
+
+        rootSelect.addEventListener('change', () => { startBtn.innerText = "Start Session"; listenBtn.disabled = true; revealBtn.disabled = true; resetHints(); buildActiveScale(); });
+        typeSelect.addEventListener('change', () => { startBtn.innerText = "Start Session"; listenBtn.disabled = true; revealBtn.disabled = true; resetHints(); buildActiveScale(); });
+        hintsToggle.addEventListener('change', () => { if (!hintsToggle.checked) resetHints(); });
+
+        function resetHints() {
+            hintDisplay.style.display = 'none';
+            hintDisplay.innerText = '';
+        }
+
+        // CRITICAL UPDATE: Unified reset handling pipeline logic for Repeat activations
+        function triggerSequenceReset() {
+            consecutiveMatches = 0;
+            currentStage = 'singing';
+            statusDiv.innerHTML = `<span class="stage-active">Stage 1:</span> Match the tone with your voice! Singing...`;
+            
+            cooldownActive = true;
+            playSyntheticGuitarString(currentNote.freq);
+            setTimeout(() => { cooldownActive = false; }, 500);
+        }
+
+        function nextExercise() {
+            stopAllAudio();
+            letterDisplay.style.visibility = 'hidden';
+            fretboardDiv.style.display = 'none';
+            document.querySelectorAll('.note-marker').forEach(m => m.style.display = 'none');
+            resetHints();
+
+            if(activeScaleNotes.length === 0) buildActiveScale();
+            
+            currentNote = activeScaleNotes[Math.floor(Math.random() * activeScaleNotes.length)];
+            letterDisplay.innerText = currentNote.name;
+            
+            listenBtn.disabled = false;
+            revealBtn.disabled = false;
+            
+            triggerSequenceReset();
+            
+            if(!isChecking) {
+                isChecking = true;
+                listenPitch();
+            }
+        }
+
+        function stopAllAudio() {
+            activeSynthesizers.forEach(node => { try { node.stop(); } catch(e){} });
+            activeSynthesizers = [];
+        }
+
+        function playSyntheticGuitarString(frequency) {
+            stopAllAudio();
+            if (!audioCtx) return;
+
+            const now = audioCtx.currentTime;
+            const totalDuration = 4.0; 
+            
+            const lowpassFilter = audioCtx.createBiquadFilter();
+            lowpassFilter.type = 'lowpass';
+            lowpassFilter.frequency.setValueAtTime(1000, now);
+            lowpassFilter.frequency.linearRampToValueAtTime(350, now + totalDuration);
+            lowpassFilter.connect(audioCtx.destination);
+
+            const masterGain = audioCtx.createGain();
+            masterGain.gain.setValueAtTime(0.0, now);
+            masterGain.gain.linearRampToValueAtTime(0.9, now + 0.05);             
+            masterGain.gain.setValueAtTime(0.8, now + 2.2);                      
+            masterGain.gain.linearRampToValueAtTime(0.001, now + totalDuration);  
+            masterGain.connect(lowpassFilter);
+
+            const oscillatorTypes = ['sawtooth', 'sine', 'triangle'];
+            const harmonicRatios = [1.0, 2.0, 3.0];
+            const harmonicVolumes = [0.5, 0.4, 0.1];
+
+            harmonicRatios.forEach((ratio, i) => {
+                const osc = audioCtx.createOscillator();
+                const componentGain = audioCtx.createGain();
+                
+                osc.type = oscillatorTypes[i];
+                osc.frequency.setValueAtTime(frequency * ratio, now);
+
+                componentGain.gain.setValueAtTime(harmonicVolumes[i], now);
+                componentGain.gain.linearRampToValueAtTime(0.001, now + totalDuration);
+
+                osc.connect(componentGain);
+                componentGain.connect(masterGain);
+                
+                osc.start(now);
+                osc.stop(now + totalDuration);
+                activeSynthesizers.push(osc);
+            });
+        }
+
+        function setupMicrophone() {
+            navigator.mediaDevices.getUserMedia({ 
+                audio: { echoCancellation: false, noiseSuppression: true, autoGainControl: false } 
+            }).then(stream => {
+                micStream = stream;
+                analyser = audioCtx.createAnalyser();
+                analyser.fftSize = 2048;
+                let source = audioCtx.createMediaStreamSource(micStream);
+                source.connect(analyser);
+            }).catch(err => {
+                console.log("Microphone offline.");
+            });
+        }
+
+        function setupSpeechRecognition() {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SpeechRecognition) return;
+
+            const recognition = new SpeechRecognition();
+            recognition.continuous = true;
+            recognition.interimResults = false;
+            recognition.lang = 'en-US';
+
+            // CRITICAL UPDATE: "Repeat" voice command resets detection state back to voice matching stage
+            recognition.onresult = (event) => {
+                const latestResultIndex = event.results.length - 1;
+                const command = event.results[latestResultIndex][0].transcript.trim().toLowerCase();
+
+                if (command.includes('next')) {
+                    nextExercise();
+                } else if (command.includes('repeat')) {
+                    if (currentNote) {
+                        triggerSequenceReset();
+                    }
+                }
+            };
+
+            recognition.onend = () => { try { recognition.start(); } catch(e){} };
+            recognition.start();
+        }
+
+        function listenPitch() {
+            if (!isChecking) return;
+            requestAnimationFrame(listenPitch);
+            
+            if (!analyser || currentStage === 'idle' || cooldownActive) return; 
+
+            analyser.getFloatTimeDomainData(sampleBuffer);
+
+            let rms = 0;
+            for (let i = 0; i < sampleBuffer.length; i++) {
+                rms += sampleBuffer[i] * sampleBuffer[i];
+            }
+            rms = Math.sqrt(rms / sampleBuffer.length);
+
+            let volumeThreshold = (currentStage === 'guitar') ? 0.08 : 0.02;
+
+            if (rms < volumeThreshold) {
+                if (hintsToggle.checked) {
+                    hintDisplay.innerText = currentStage === 'guitar' ? "Strike guitar string firmly..." : "Listening...";
+                    hintDisplay.className = "hint-box";
+                    hintDisplay.style.color = "#888";
+                }
+                consecutiveMatches = Math.max(0, consecutiveMatches - 2);
+                return;
+            }
+
+            let pitch = autoCorrelate(sampleBuffer, audioCtx.sampleRate);
+
+            if (pitch !== -1 && currentNote) {
+                let centsDifference = 1200 * Math.log2(pitch / currentNote.freq);
+                
+                if (hintsToggle.checked) {
+                    hintDisplay.style.display = 'block';
+                    
+                    if (Math.abs(centsDifference) < 65) {
+                        hintDisplay.className = "hint-box pitch-match";
+                        hintDisplay.innerText = "🎯 Pitch Matching!";
+                    } else if (centsDifference < 0) {
+                        hintDisplay.className = "hint-box pitch-low";
+                        hintDisplay.innerText = "🔼 Too Low! Sing/Play Higher";
+                    } else {
+                        hintDisplay.className = "hint-box pitch-high";
+                        hintDisplay.innerText = "🔽 Too High! Sing/Play Lower";
+                    }
+                }
+
+                if (Math.abs(centsDifference) < 65) { 
+                    consecutiveMatches++;
+                    
+                    if (consecutiveMatches >= REQUIRED_STREAK) {
+                        consecutiveMatches = 0; 
+                        resetHints();
+                        
+                        if (currentStage === 'singing') {
+                            currentStage = 'guitar';
+                            cooldownActive = true; 
+                            playSyntheticGuitarString(currentNote.freq); 
+                            statusDiv.innerHTML = `<span class="success">Voice Match!</span> Now play that same note on your guitar...`;
+                            setTimeout(() => { cooldownActive = false; }, 500); 
+                        } else if (currentStage === 'guitar') {
+                            currentStage = 'idle';
+                            stopAllAudio();
+                            statusDiv.innerHTML = `<span class="success">Perfect Match!</span> You nailed it on guitar. Say "Next" to continue.`;
+                            listenBtn.disabled = true;
+                        }
+                    }
+                } else {
+                    consecutiveMatches = Math.max(0, consecutiveMatches - 1);
+                }
+            } else {
+                consecutiveMatches = Math.max(0, consecutiveMatches - 2);
+            }
+        }
+
+        function autoCorrelate(buffer, sampleRate) {
+            let SIZE = buffer.length;
+            let r1 = 0, r2 = SIZE - 1, thres = 0.2;
+            for (let i = 0; i < SIZE / 2; i++) {
+                if (Math.abs(buffer[i]) < thres) { r1 = i; break; }
+            }
+            for (let i = SIZE - 1; i >= SIZE / 2; i--) {
+                if (Math.abs(buffer[i]) < thres) { r2 = i; break; }
+            }
+            buffer = buffer.slice(r1, r2);
+            SIZE = buffer.length;
+
+            let c = new Float32Array(SIZE);
+            for (let i = 0; i < SIZE; i++) {
+                for (let j = 0; j < SIZE - i; j++) {
+                    c[i] = c[i] + buffer[j] * buffer[j + i];
+                }
+            }
+
+            let d = 0;
+            while (c[d] > c[d + 1]) d++;
+            let maxval = -1, maxpos = -1;
+            for (let i = d; i < SIZE; i++) {
+                if (c[i] > maxval) {
+                    maxval = c[i];
+                    maxpos = i;
+                }
+            }
+            let T0 = maxpos;
+            return sampleRate / T0;
+        }
+
+        function highlightFret(stringName, fretNum) {
+            const stringRow = document.querySelector(`[data-string="${stringName}"]`) || document.querySelector(`[data-string^="${stringName}"]`);
+            if(stringRow) {
+                const marker = stringRow.children[fretNum].querySelector('.note-marker');
+                if(marker) marker.style.display = 'block';
+            }
+        }
+
+        document.querySelectorAll('.range-fret').forEach(fretEl => {
+            fretEl.addEventListener('click', () => {
+                let fretNum = parseInt(fretEl.getAttribute('data-fret'));
+                handleRangeSelection(fretNum);
+            });
+        });
+        
+        buildActiveScale();
+        updateRangeUI();
+    </script>
+</body>
+</html>
