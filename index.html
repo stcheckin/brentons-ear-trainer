@@ -25,7 +25,7 @@
             justify-content: center;
         }
         .container { max-width: 850px; width: 100%; display: flex; flex-direction: column; gap: 20px; }
-        .card { background-color: var(--card-bg); border-radius: 12px; padding: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
+        .card { background-color: var(--card-bg); border-radius: 12px; padding: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); position: relative; }
         .controls-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; margin-bottom: 15px; }
         .control-group { display: flex; flex-direction: column; gap: 5px; }
         label { font-size: 14px; color: var(--text-muted); font-weight: 500; }
@@ -35,17 +35,27 @@
         .btn-container { display: flex; gap: 10px; margin-top: 15px; }
         button { flex: 1; background-color: var(--accent-color); color: white; border: none; padding: 12px; border-radius: 8px; font-weight: 600; cursor: pointer; }
         button:disabled { background-color: #3a3a3c; color: var(--text-muted); cursor: not-allowed; }
-        #status { font-size: 18px; font-weight: 500; margin: 15px 0; text-align: center; }
+        
+        /* Fixed height status display area to prevent page element jumping */
+        .status-area { height: 75px; display: flex; flex-direction: column; justify-content: center; align-items: center; margin: 10px 0; }
+        #status { font-size: 18px; font-weight: 500; text-align: center; }
         .stage-active { color: var(--warning-color); }
         .success { color: var(--success-color); }
-        .hint-box { padding: 12px; border-radius: 6px; background-color: #2c2c2e; font-weight: 600; text-align: center; margin-top: 10px; display: none; }
+        
+        .hint-box { width: 100%; max-width: 400px; padding: 8px; border-radius: 6px; background-color: #2c2c2e; font-weight: 600; text-align: center; margin-top: 5px; visibility: hidden; opacity: 0; transition: opacity 0.15s ease; }
         .pitch-match { background-color: rgba(52, 199, 89, 0.2); color: #34c759; }
         .pitch-low { background-color: rgba(255, 149, 0, 0.2); color: #ff9500; }
         .pitch-high { background-color: rgba(255, 59, 48, 0.2); color: #ff3b30; }
+        
         #letter-display { font-size: 72px; font-weight: 800; text-align: center; margin: 20px 0; display: none; }
         
-        /* Fixed & Wide Fretboard layout mimicking real guitar tabs dimensions */
-        .fretboard-wrapper { width: 100%; overflow-x: auto; background: #2c251e; border-radius: 6px; border: 2px solid #1a1512; margin-top: 15px; padding: 10px 0; display: none; }
+        /* Layout placeholders to reserve space and completely eliminate UI shifting */
+        .notation-container { display: block; visibility: hidden; height: 0; overflow: hidden; background: white; border-radius: 8px; padding: 0; margin-top: 0; transition: all 0.2s ease; }
+        .notation-container.visible { visibility: visible; height: 150px; padding: 15px; margin-top: 15px; display: flex; justify-content: center; overflow-x: auto; }
+        
+        .fretboard-wrapper { width: 100%; overflow-x: auto; background: #2c251e; border-radius: 6px; border: 2px solid #1a1512; margin-top: 15px; padding: 10px 0; display: block; visibility: hidden; height: 0; overflow-y: hidden; transition: all 0.2s ease; }
+        .fretboard-wrapper.visible { visibility: visible; height: auto; padding: 10px 0; }
+        
         .fretboard { display: flex; flex-direction: column; min-width: 780px; }
         .string { display: flex; height: 30px; align-items: center; position: relative; }
         .string::before { content: ''; position: absolute; left: 0; right: 0; height: 2px; background: #b5b5b5; z-index: 1; }
@@ -54,7 +64,6 @@
         .fret:first-child { flex: 0 0 35px; border-right: 5px solid #fff; background-color: rgba(0,0,0,0.4); }
         .note-marker { width: 20px; height: 20px; border-radius: 50%; background-color: var(--danger-color); display: none; align-items: center; justify-content: center; font-size: 11px; font-weight: bold; color: white; z-index: 4; }
         
-        .notation-container { display: none; background: white; border-radius: 8px; padding: 15px; margin-top: 15px; justify-content: center; overflow-x: auto; }
         pre#tab-display { background-color: #000; color: #34c759; padding: 18px; border-radius: 8px; font-family: 'Courier New', monospace; font-size: 16px; overflow-x: auto; display: none; white-space: pre; line-height: 1.4; margin-top: 15px; letter-spacing: 2px; }
     </style>
 </head>
@@ -116,8 +125,11 @@
     </div>
 
     <div class="card">
-        <div id="status">Press "Start Session" to begin.</div>
-        <div id="hint-display" class="hint-box"></div>
+        <div class="status-area">
+            <div id="status">Press "Start Session" to begin.</div>
+            <div id="hint-display" class="hint-box"></div>
+        </div>
+        
         <div id="letter-display">E</div>
         
         <div class="notation-container" id="notation-container">
@@ -215,9 +227,11 @@ function nextExercise() {
     isAudioPlaying = true;
     consecutiveMatches = 0;
     letterDisplay.style.display = 'none';
-    fretboardWrapper.style.display = 'none';
+    
+    // Hide panels cleanly via transitions rather than jarring displays
+    fretboardWrapper.classList.remove('visible');
+    notationContainer.classList.remove('visible');
     tabDisplay.style.display = 'none';
-    notationContainer.style.display = 'none';
     document.querySelectorAll('.note-marker').forEach(m => { m.style.display = 'none'; m.innerText = ''; });
 
     const totalNotesRequested = parseInt(document.getElementById('note-count').value);
@@ -237,7 +251,6 @@ function nextExercise() {
         currentNote = null;
         currentRiff = [];
 
-        // Determine bars structure: 16 max notes spread up to 4 bars
         totalBarsCalculated = Math.max(1, Math.ceil(totalNotesRequested / 4));
         const totalQuarterBeats = totalBarsCalculated * 4;
         
@@ -247,7 +260,6 @@ function nextExercise() {
         
         const totalAvailableSlots = totalQuarterBeats * subdivisionsPerBeat;
         
-        // Pick explicit unique slot indices sorted chronologically
         let chosenSlots = [];
         while(chosenSlots.length < Math.min(totalNotesRequested, totalAvailableSlots)) {
             let randSlot = Math.floor(Math.random() * totalAvailableSlots);
@@ -255,7 +267,6 @@ function nextExercise() {
         }
         chosenSlots.sort((a, b) => a - b);
 
-        // Musical Riff Generator: restrict movements to steps/thirds/fifths within scale
         let currentScaleIdx = Math.floor(Math.random() * activeScaleNotes.length);
         const musicalJumps = [-2, -1, 1, 2, 3, -3, 4, -4]; 
 
@@ -270,7 +281,6 @@ function nextExercise() {
             noteCopy.subDivIndex = subDivIndex;
             currentRiff.push(noteCopy);
 
-            // Shift musical step for next iteration loop smoothly
             let jump = musicalJumps[Math.floor(Math.random() * musicalJumps.length)];
             currentScaleIdx = (currentScaleIdx + jump + activeScaleNotes.length) % activeScaleNotes.length;
         });
@@ -368,14 +378,19 @@ function listenPitch() {
     for (let i = 0; i < sampleBuffer.length; i++) rms += sampleBuffer[i] * sampleBuffer[i];
     rms = Math.sqrt(rms / sampleBuffer.length);
 
-    if (rms < 0.04) { hintDisplay.style.display = 'none'; return; }
+    if (rms < 0.04) { 
+        hintDisplay.style.visibility = 'hidden'; 
+        hintDisplay.style.opacity = '0'; 
+        return; 
+    }
 
     let pitch = autoCorrelate(sampleBuffer, audioCtx.sampleRate);
     let target = currentNote ? currentNote : currentRiff[currentRiffIndex];
 
     if (pitch !== -1 && target) {
         let cents = 1200 * Math.log2(pitch / target.freq);
-        hintDisplay.style.display = 'block';
+        hintDisplay.style.visibility = 'visible';
+        hintDisplay.style.opacity = '1';
 
         if (Math.abs(cents) < 60) {
             hintDisplay.className = "hint-box pitch-match";
@@ -422,7 +437,7 @@ function autoCorrelate(buffer, sampleRate) {
 }
 
 function renderStandardNotation(notesArray) {
-    notationContainer.style.display = 'flex';
+    notationContainer.classList.add('visible');
     const svgNS = "http://www.w3.org/2000/svg";
     notationSvg.innerHTML = ''; 
     
@@ -491,7 +506,7 @@ function revealAnswer() {
     if (currentNote) {
         letterDisplay.innerText = currentNote.name;
         letterDisplay.style.display = 'block';
-        fretboardWrapper.style.display = 'block';
+        fretboardWrapper.classList.add('visible');
         
         let row = document.querySelector(`[data-string="${currentNote.string}"]`);
         if(row) {
@@ -503,15 +518,13 @@ function revealAnswer() {
     } else if (currentRiff.length > 0) {
         renderStandardNotation(currentRiff);
         tabDisplay.style.display = 'block';
-        fretboardWrapper.style.display = 'block';
+        fretboardWrapper.classList.add('visible');
         
-        // Plot and sequence all notes out onto the new guitar graphic neck visually numbered
         currentRiff.forEach((note, index) => {
             let row = document.querySelector(`[data-string="${note.string}"]`);
             if (row && row.children[note.fret]) {
                 let marker = row.children[note.fret].querySelector('.note-marker');
                 marker.style.display = 'flex';
-                // Append step order to track multi-note jumps easily
                 marker.innerText = marker.innerText ? marker.innerText + ',' + (index + 1) : (index + 1);
             }
         });
@@ -524,6 +537,7 @@ function revealAnswer() {
         let stepsPerBeat = rhythmType === 16 ? 4 : (rhythmType === 8 ? 2 : 1);
         let totalBeats = totalBarsCalculated * 4;
 
+        // Render continuously spaced tabs out clean without confusing bar division boundaries
         for (let b = 0; b < totalBeats; b++) {
             for (let sub = 0; sub < stepsPerBeat; sub++) {
                 let matchedNotes = currentRiff.filter(n => n.beatIndex === b && n.subDivIndex === sub);
@@ -537,12 +551,8 @@ function revealAnswer() {
                     }
                 });
 
-                // Add padding hyphen for extra visual width balance
-                order.forEach(s => { tabMatrix[s] += '-'; });
-            }
-            // Append explicit measure bar line
-            if ((b + 1) % 4 === 0) {
-                order.forEach(s => { tabMatrix[s] += '|'; });
+                // Soft double spaces to organically read phrases properly
+                order.forEach(s => { tabMatrix[s] += '--'; });
             }
         }
         
