@@ -52,7 +52,7 @@
         .note-marker { width: 14px; height: 14px; border-radius: 50%; background-color: var(--danger-color); display: none; }
         
         .notation-container { display: none; background: white; border-radius: 8px; padding: 15px; margin-top: 15px; justify-content: center; overflow-x: auto; }
-        pre#tab-display { background-color: #000; color: #34c759; padding: 15px; border-radius: 8px; font-family: 'Courier New', monospace; font-size: 15px; overflow-x: auto; display: none; white-space: pre; line-height: 1.3; margin-top: 15px; letter-spacing: 1px; }
+        pre#tab-display { background-color: #000; color: #34c759; padding: 18px; border-radius: 8px; font-family: 'Courier New', monospace; font-size: 16px; overflow-x: auto; display: none; white-space: pre; line-height: 1.4; margin-top: 15px; letter-spacing: 2px; }
     </style>
 </head>
 <body>
@@ -88,7 +88,7 @@
                 </select>
             </div>
             <div class="control-group">
-                <label>Notes Count (Beats)</label>
+                <label>Beats (4/4 Time)</label>
                 <input type="number" id="note-count" min="1" max="16" value="4">
             </div>
             <div class="control-group">
@@ -225,7 +225,7 @@ function nextExercise() {
     if (totalBeats === 1 && maxRhythm === 4) {
         startBtn.innerText = "Next Note";
         currentRiff = [];
-        currentNote = activeScaleNotes[Math.floor(Math.random() * activeScaleNotes.length)];
+        currentNote = { ...activeScaleNotes[Math.floor(Math.random() * activeScaleNotes.length)] };
         currentNote.rhythmType = 4;
         currentNote.beatIndex = 0;
         currentNote.subDivIndex = 0;
@@ -252,8 +252,8 @@ function nextExercise() {
                 noteCopy.subDivIndex = sub;
                 currentRiff.push(noteCopy);
                 
-                // Musical variation logic
-                if (Math.random() > 0.3) {
+                // Keep riffs melodic/musical rather than jumping completely random intervals
+                if (Math.random() > 0.4) {
                     currentIdx = (currentIdx + (Math.random() > 0.5 ? 1 : -1) + activeScaleNotes.length) % activeScaleNotes.length;
                 }
             }
@@ -509,36 +509,52 @@ function revealAnswer() {
         const order = ['E1', 'B', 'G', 'D', 'A', 'E6'];
         const stringLabels = { 'E1': 'e|', 'B': 'B|', 'G': 'G|', 'D': 'D|', 'A': 'A|', 'E6': 'E|' };
         
-        let subTracks = { 'E1': '', 'B': '', 'G': '', 'D': '', 'A': '', 'E6': '' };
-        
-        let lastBeatIndex = -1;
-        
-        currentRiff.forEach((note) => {
-            // Dynamic spacing based on division type
-            let spaceSize = 3; 
-            if (note.rhythmType === 12) spaceSize = 4;
-            if (note.rhythmType === 16) spaceSize = 3;
+        // Group notes by their assigned beat index
+        const totalBeats = parseInt(document.getElementById('note-count').value);
+        let tabMatrix = { 'E1': '', 'B': '', 'G': '', 'D': '', 'A': '', 'E6': '' };
 
-            // Render a clear bar line boundary between beats
-            if (lastBeatIndex !== -1 && note.beatIndex !== lastBeatIndex) {
-                order.forEach(s => { subTracks[s] += '|'; });
-            }
+        for (let b = 0; b < totalBeats; b++) {
+            let beatNotes = currentRiff.filter(n => n.beatIndex === b);
             
-            let fretStr = note.fret.toString();
-            let totalWidth = Math.max(fretStr.length, spaceSize);
+            // Set up standardized dynamic graphical spacing per beat
+            let beatWidth = 12; 
+            let positions = Array(beatWidth).fill('-');
+            let dynamicNoteMapping = {};
             
-            order.forEach(s => {
-                if (note.string === s) {
-                    subTracks[s] += fretStr.padEnd(totalWidth, '-');
-                } else {
-                    subTracks[s] += ''.padEnd(totalWidth, '-');
-                }
+            beatNotes.forEach(note => {
+                let step = 0;
+                if (note.rhythmType === 4) step = 0;
+                else if (note.rhythmType === 8) step = note.subDivIndex * 6;
+                else if (note.rhythmType === 12) step = note.subDivIndex * 4;
+                else if (note.rhythmType === 16) step = note.subDivIndex * 3;
+                
+                if (!dynamicNoteMapping[step]) dynamicNoteMapping[step] = [];
+                dynamicNoteMapping[step].push(note);
             });
-            
-            lastBeatIndex = note.beatIndex;
-        });
+
+            // Write standard formatted strings into each lane matrix frame
+            for (let step = 0; step < beatWidth; step++) {
+                if (dynamicNoteMapping[step]) {
+                    order.forEach(s => {
+                        let matchedNote = dynamicNoteMapping[step].find(n => n.string === s);
+                        if (matchedNote) {
+                            let fretStr = matchedNote.fret.toString();
+                            tabMatrix[s] += fretStr;
+                            if (fretStr.length > 1) step++; // structural correction for double digits
+                        } else {
+                            tabMatrix[s] += '-';
+                        }
+                    });
+                } else {
+                    order.forEach(s => { tabMatrix[s] += '-'; });
+                }
+            }
+
+            // Append measure bar breaks perfectly separating structural beats
+            order.forEach(s => { tabMatrix[s] += '|'; });
+        }
         
-        let completeTab = order.map(s => `${stringLabels[s]}---${subTracks[s]}|`).join('\n');
+        let completeTab = order.map(s => `${stringLabels[s]}-${tabMatrix[s]}`).join('\n');
         tabDisplay.innerText = completeTab;
     }
 }
