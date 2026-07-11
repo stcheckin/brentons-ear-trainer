@@ -36,6 +36,7 @@
         button { flex: 1; background-color: var(--accent-color); color: white; border: none; padding: 12px; border-radius: 8px; font-weight: 600; cursor: pointer; }
         button:disabled { background-color: #3a3a3c; color: var(--text-muted); cursor: not-allowed; }
         
+        /* Fixed height status display area to prevent page element jumping */
         .status-area { height: 75px; display: flex; flex-direction: column; justify-content: center; align-items: center; margin: 10px 0; }
         #status { font-size: 18px; font-weight: 500; text-align: center; }
         .stage-active { color: var(--warning-color); }
@@ -48,6 +49,7 @@
         
         #letter-display { font-size: 72px; font-weight: 800; text-align: center; margin: 20px 0; display: none; }
         
+        /* Layout placeholders to reserve space and completely eliminate UI shifting */
         .notation-container { display: block; visibility: hidden; height: 0; overflow: hidden; background: white; border-radius: 8px; padding: 0; margin-top: 0; transition: all 0.2s ease; }
         .notation-container.visible { visibility: visible; height: 150px; padding: 15px; margin-top: 15px; display: flex; justify-content: center; overflow-x: auto; }
         
@@ -98,8 +100,8 @@
                 </select>
             </div>
             <div class="control-group">
-                <label>Beats (4/4 Time)</label>
-                <input type="number" id="beat-count" min="1" max="16" value="4">
+                <label>Total Notes to Play</label>
+                <input type="number" id="note-count" min="1" max="16" value="4">
             </div>
             <div class="control-group">
                 <label>Max Rhythm Form</label>
@@ -170,6 +172,7 @@ let activeScaleNotes = [], audioCtx = null, currentNote = null, currentRiff = []
 let currentRiffIndex = 0, currentStage = 'idle', analyser = null, micStream = null;
 let sampleBuffer = new Float32Array(2048), consecutiveMatches = 0;
 let isAudioPlaying = false, hasStarted = false, speechRecognizer = null; 
+let totalBarsCalculated = 1;
 
 const startBtn = document.getElementById('start-btn'), listenBtn = document.getElementById('listen-btn'), revealBtn = document.getElementById('reveal-btn');
 const statusDiv = document.getElementById('status'), hintDisplay = document.getElementById('hint-display'), letterDisplay = document.getElementById('letter-display');
@@ -225,16 +228,16 @@ function nextExercise() {
     consecutiveMatches = 0;
     letterDisplay.style.display = 'none';
     
+    // Hide panels cleanly via transitions rather than jarring displays
     fretboardWrapper.classList.remove('visible');
     notationContainer.classList.remove('visible');
     tabDisplay.style.display = 'none';
     document.querySelectorAll('.note-marker').forEach(m => { m.style.display = 'none'; m.innerText = ''; });
 
-    const totalBeatsRequested = parseInt(document.getElementById('note-count').value);
+    const totalNotesRequested = parseInt(document.getElementById('note-count').value);
     const maxRhythm = parseInt(document.getElementById('rhythm-select').value);
     
-    // 1 single beat requested sets up Single-Note beginner mode
-    if (totalBeatsRequested === 1 && maxRhythm === 4) {
+    if (totalNotesRequested === 1) {
         startBtn.innerText = "Next Note";
         currentRiff = [];
         currentNote = { ...activeScaleNotes[Math.floor(Math.random() * activeScaleNotes.length)] };
@@ -248,26 +251,39 @@ function nextExercise() {
         currentNote = null;
         currentRiff = [];
 
+        totalBarsCalculated = Math.max(1, Math.ceil(totalNotesRequested / 4));
+        const totalQuarterBeats = totalBarsCalculated * 4;
+        
         let subdivisionsPerBeat = 1;
         if (maxRhythm === 8) subdivisionsPerBeat = 2;
         if (maxRhythm === 16) subdivisionsPerBeat = 4;
         
+        const totalAvailableSlots = totalQuarterBeats * subdivisionsPerBeat;
+        
+        let chosenSlots = [];
+        while(chosenSlots.length < Math.min(totalNotesRequested, totalAvailableSlots)) {
+            let randSlot = Math.floor(Math.random() * totalAvailableSlots);
+            if(!chosenSlots.includes(randSlot)) chosenSlots.push(randSlot);
+        }
+        chosenSlots.sort((a, b) => a - b);
+
         let currentScaleIdx = Math.floor(Math.random() * activeScaleNotes.length);
         const musicalJumps = [-2, -1, 1, 2, 3, -3, 4, -4]; 
 
-        // Generate notes for every available subdivision slot within the requested beats count
-        for (let b = 0; b < totalBeatsRequested; b++) {
-            for (let sub = 0; sub < subdivisionsPerBeat; sub++) {
-                let noteCopy = { ...activeScaleNotes[currentScaleIdx] };
-                noteCopy.rhythmType = maxRhythm;
-                noteCopy.beatIndex = b;
-                noteCopy.subDivIndex = sub;
-                currentRiff.push(noteCopy);
+        chosenSlots.forEach((slotIndex) => {
+            let totalSubdivIndex = slotIndex;
+            let beatIndex = Math.floor(totalSubdivIndex / subdivisionsPerBeat);
+            let subDivIndex = totalSubdivIndex % subdivisionsPerBeat;
 
-                let jump = musicalJumps[Math.floor(Math.random() * musicalJumps.length)];
-                currentScaleIdx = (currentScaleIdx + jump + activeScaleNotes.length) % activeScaleNotes.length;
-            }
-        }
+            let noteCopy = { ...activeScaleNotes[currentScaleIdx] };
+            noteCopy.rhythmType = maxRhythm;
+            noteCopy.beatIndex = beatIndex;
+            noteCopy.subDivIndex = subDivIndex;
+            currentRiff.push(noteCopy);
+
+            let jump = musicalJumps[Math.floor(Math.random() * musicalJumps.length)];
+            currentScaleIdx = (currentScaleIdx + jump + activeScaleNotes.length) % activeScaleNotes.length;
+        });
         
         currentRiffIndex = 0;
         currentStage = 'riff_tracking';
@@ -519,9 +535,10 @@ function revealAnswer() {
         let tabMatrix = { 'E1': '', 'B': '', 'G': '', 'D': '', 'A': '', 'E6': '' };
         let rhythmType = currentRiff[0].rhythmType;
         let stepsPerBeat = rhythmType === 16 ? 4 : (rhythmType === 8 ? 2 : 1);
-        const totalBeatsRequested = parseInt(document.getElementById('note-count').value);
+        let totalBeats = totalBarsCalculated * 4;
 
-        for (let b = 0; b < totalBeatsRequested; b++) {
+        // Render continuously spaced tabs out clean without confusing bar division boundaries
+        for (let b = 0; b < totalBeats; b++) {
             for (let sub = 0; sub < stepsPerBeat; sub++) {
                 let matchedNotes = currentRiff.filter(n => n.beatIndex === b && n.subDivIndex === sub);
                 
@@ -534,6 +551,7 @@ function revealAnswer() {
                     }
                 });
 
+                // Soft double spaces to organically read phrases properly
                 order.forEach(s => { tabMatrix[s] += '--'; });
             }
         }
