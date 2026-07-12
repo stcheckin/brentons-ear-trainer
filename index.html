@@ -36,7 +36,7 @@
         button { flex: 1; background-color: var(--accent-color); color: white; border: none; padding: 12px; border-radius: 8px; font-weight: 600; cursor: pointer; }
         button:disabled { background-color: #3a3a3c; color: var(--text-muted); cursor: not-allowed; }
         
-        /* Fixed height status display area to prevent page element jumping */
+        /* Layout placeholders to reserve space and completely eliminate UI shifting */
         .status-area { height: 75px; display: flex; flex-direction: column; justify-content: center; align-items: center; margin: 10px 0; }
         #status { font-size: 18px; font-weight: 500; text-align: center; }
         .stage-active { color: var(--warning-color); }
@@ -49,7 +49,6 @@
         
         #letter-display { font-size: 72px; font-weight: 800; text-align: center; margin: 20px 0; display: none; }
         
-        /* Layout placeholders to reserve space and completely eliminate UI shifting */
         .notation-container { display: block; visibility: hidden; height: 0; overflow: hidden; background: white; border-radius: 8px; padding: 0; margin-top: 0; transition: all 0.2s ease; }
         .notation-container.visible { visibility: visible; height: 150px; padding: 15px; margin-top: 15px; display: flex; justify-content: center; overflow-x: auto; }
         
@@ -233,7 +232,7 @@ startBtn.addEventListener('click', () => {
     nextExercise();
 });
 
-listenBtn.addEventListener('click', () => { if(!isAudioPlaying || true) playCurrentAudio(); });
+listenBtn.addEventListener('click', () => { playCurrentAudio(); });
 revealBtn.addEventListener('click', revealAnswer);
 
 function nextExercise() {
@@ -281,22 +280,38 @@ function nextExercise() {
         }
         chosenSlots.sort((a, b) => a - b);
 
-        let currentScaleIdx = Math.floor(Math.random() * activeScaleNotes.length);
-        const musicalJumps = [-2, -1, 1, 2, 3, -3, 4, -4]; 
+        // Guitar Generation Archetypes: 0 = Arpeggio / Chord Shape Pluck, 1 = Pentatonic Box Sequence, 2 = Classic Melodic Resolution
+        const archetype = Math.floor(Math.random() * 3);
+        let baseScaleIdx = Math.floor(Math.random() * activeScaleNotes.length);
 
-        chosenSlots.forEach((slotIndex) => {
+        chosenSlots.forEach((slotIndex, i) => {
             let totalSubdivIndex = slotIndex;
             let beatIndex = Math.floor(totalSubdivIndex / subdivisionsPerBeat);
             let subDivIndex = totalSubdivIndex % subdivisionsPerBeat;
+            let currentScaleIdx = baseScaleIdx;
+
+            if (archetype === 0) {
+                // Chord Shape Arpeggiator: Tracks across intervals of typical guitar triads (Root, 3rd, 5th, Octave)
+                let chordIntervals = [0, 2, 4, 6];
+                let intervalOffset = chordIntervals[i % chordIntervals.length];
+                currentScaleIdx = (baseScaleIdx + intervalOffset) % activeScaleNotes.length;
+            } else if (archetype === 1) {
+                // Pentatonic Box Sequence: Moves step-wise and skips naturally through adjacent guitar finger strings
+                let pentatonicPattern = [0, 1, 2, 1, 3, 2, 4, 3];
+                let patternOffset = pentatonicPattern[i % pentatonicPattern.length];
+                currentScaleIdx = (baseScaleIdx + patternOffset) % activeScaleNotes.length;
+            } else {
+                // Natural Progression/Resolution: Follows classic call-and-response melodic structures
+                let melodicSteps = [0, 2, 3, 1, 4, 2, 0];
+                let progressionOffset = melodicSteps[i % melodicSteps.length];
+                currentScaleIdx = (baseScaleIdx + progressionOffset) % activeScaleNotes.length;
+            }
 
             let noteCopy = { ...activeScaleNotes[currentScaleIdx] };
             noteCopy.rhythmType = maxRhythm;
             noteCopy.beatIndex = beatIndex;
             noteCopy.subDivIndex = subDivIndex;
             currentRiff.push(noteCopy);
-
-            let jump = musicalJumps[Math.floor(Math.random() * musicalJumps.length)];
-            currentScaleIdx = (currentScaleIdx + jump + activeScaleNotes.length) % activeScaleNotes.length;
         });
         
         currentRiffIndex = 0;
@@ -331,7 +346,7 @@ function playCurrentAudio() {
             let noteDuration = beatDuration / subdivisionsPerBeat;
             let startTime = now + (note.beatIndex * beatDuration) + (note.subDivIndex * noteDuration);
             
-            playSynthTone(note.freq, startTime, noteDuration * 0.85);
+            playSynthTone(note.freq, startTime, noteDuration * 0.95);
             totalPlayTime = Math.max(totalPlayTime, (startTime - now) + noteDuration);
         });
         
@@ -341,22 +356,33 @@ function playCurrentAudio() {
 
 function playSynthTone(freq, start, duration) {
     const osc = audioCtx.createOscillator();
+    const subOsc = audioCtx.createOscillator(); // Sub-harmonics to give a full, physical wood body resonance
     const gain = audioCtx.createGain();
+    
+    // Triangle wave provides basic string body, combined with a subtle pure sine wave tone profile
     osc.type = 'triangle';
     osc.frequency.setValueAtTime(freq, start);
     
+    subOsc.type = 'sine';
+    subOsc.frequency.setValueAtTime(freq * 2, start); // Add secondary string overtone
+
+    // Authentic Guitar Envelope: Instant string pluck transients with long string decay
     gain.gain.setValueAtTime(0, start);
-    gain.gain.linearRampToValueAtTime(0.4, start + 0.01);
-    gain.gain.setValueAtTime(0.3, start + duration - 0.02);
+    gain.gain.linearRampToValueAtTime(0.4, start + 0.004); // Fast pick snap
+    gain.gain.exponentialRampToValueAtTime(0.12, start + 0.08); // Decays gracefully into structural vibration
     gain.gain.linearRampToValueAtTime(0.001, start + duration);
 
     osc.connect(gain);
+    subOsc.connect(gain);
     gain.connect(audioCtx.destination);
     
     activeOscillators.push(osc);
+    activeOscillators.push(subOsc);
     
     osc.start(start);
+    subOsc.start(start);
     osc.stop(start + duration);
+    subOsc.stop(start + duration);
 }
 
 function setupMicrophone() {
@@ -597,8 +623,6 @@ function revealAnswer() {
 /* AUTOMATED PRE-FLIGHT DIAGNOSTIC HARNESS */
 function runPreFlightDiagnosticTests() {
     console.log("%c=== RUNNING GUITAR EAR TRAINER RUNTIME TESTS ===", "color: #007aff; font-weight: bold;");
-    
-    // Test 1: DOM ID Consistency Assertions
     const beatCountElement = document.getElementById('beat-count');
     const noteCountElement = document.getElementById('note-count');
     if (beatCountElement && !noteCountElement) {
@@ -606,8 +630,6 @@ function runPreFlightDiagnosticTests() {
     } else {
         console.error("❌ Test 1 Failed: Architectural mapping divergence present for 'beat-count' target.");
     }
-
-    // Test 2: Verify Triplet Selection Availability
     const rhythmSelect = document.getElementById('rhythm-select');
     let hasTriplets = Array.from(rhythmSelect.options).some(opt => opt.value === "12");
     if (hasTriplets) {
@@ -615,9 +637,7 @@ function runPreFlightDiagnosticTests() {
     } else {
         console.error("❌ Test 2 Failed: Triplet value missing inside dropdown node map.");
     }
-
-    // Test 3: Audio Disconnect Tracking Framework Verify
-    if (Array.isArray(activeOscillators)) {
+    if (typeof stopAllActiveAudio === 'function' && Array.isArray(activeOscillators)) {
         console.log("✅ Test 3 Passed: Overlapping audio buffer garbage collection array is active.");
     } else {
         console.error("❌ Test 3 Failed: Overlapping tracker system is uninitialized.");
