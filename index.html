@@ -5,740 +5,755 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Brenton's Ear Trainer</title>
     <style>
+        :root {
+            --bg-color: #121214;
+            --card-bg: #1c1c1f;
+            --accent-color: #007aff;
+            --success-color: #34c759;
+            --warning-color: #ff9500;
+            --danger-color: #ff3b30;
+            --text-main: #ffffff;
+            --text-muted: #aeaeae;
+            --fret-selected: rgba(0, 122, 255, 0.3);
+        }
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            background: #121212;
-            color: #e0e0e0;
-            max-width: 700px;
-            margin: 40px auto;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
             padding: 20px;
-            text-align: center;
-        }
-        h1 { color: #fff; margin-bottom: 5px; }
-        .subtitle { color: #888; margin-bottom: 10px; }
-        
-        .selector-container {
-            margin: 20px 0;
             display: flex;
             justify-content: center;
-            align-items: center;
-            gap: 15px;
-            flex-wrap: wrap;
         }
-        select {
-            background: #2a2a2a;
-            color: #fff;
-            border: 1px solid #444;
-            padding: 8px 16px;
-            font-size: 16px;
-            border-radius: 6px;
-            cursor: pointer;
+        .container { max-width: 850px; width: 100%; display: flex; flex-direction: column; gap: 20px; }
+        .card { background-color: var(--card-bg); border-radius: 12px; padding: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); position: relative; }
+        .controls-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; margin-bottom: 15px; }
+        .control-group { display: flex; flex-direction: column; gap: 5px; }
+        label { font-size: 14px; color: var(--text-muted); font-weight: 500; }
+        select, input[type="number"], input[type="range"] {
+            background-color: #2c2c2e; border: 1px solid #3a3a3c; color: var(--text-main); padding: 8px 12px; border-radius: 6px; outline: none;
         }
-
-        .toggle-wrapper {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            background: #1e1e1e;
-            padding: 6px 12px;
-            border-radius: 20px;
-            border: 1px solid #333;
-        }
-        .switch {
-            position: relative;
-            display: inline-block;
-            width: 44px;
-            height: 24px;
-        }
-        .switch input { opacity: 0; width: 0; height: 0; }
-        .slider {
-            position: absolute;
-            cursor: pointer;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background-color: #444;
-            transition: .3s;
-            border-radius: 24px;
-        }
-        .slider:before {
-            position: absolute;
-            content: "";
-            height: 16px; width: 16px;
-            left: 4px; bottom: 4px;
-            background-color: white;
-            transition: .3s;
-            border-radius: 50%;
-        }
-        input:checked + .slider { background-color: #007aff; }
-        input:checked + .slider:before { transform: translateX(20px); }
-        .toggle-label { font-size: 14px; font-weight: 500; color: #aaa; }
-
-        .range-panel {
-            background: #1e1e1e;
-            border: 1px solid #333;
-            border-radius: 10px;
-            padding: 20px;
-            margin: 20px auto 25px auto;
-            max-width: 650px;
-        }
-        .range-title {
-            font-size: 15px;
-            color: #ffcc00;
-            margin-bottom: 15px;
-            font-weight: 600;
-            letter-spacing: 0.5px;
-        }
-        .range-fretboard {
-            display: flex;
-            background: #2d1a10;
-            border: 3px solid #140e0b;
-            border-radius: 6px;
-            min-height: 50px;
-            width: 100%;
-            box-sizing: border-box;
-        }
-        .range-fret {
-            flex: 1;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            min-width: 25px;
-            color: #aaa;
-            font-size: 14px;
-            font-weight: bold;
-            cursor: pointer;
-            border-right: 2px solid #d4af37;
-            background: #3a2215;
-            transition: background 0.15s, color 0.15s;
-            user-select: none;
-            padding: 12px 0;
-        }
-        .range-fret:first-child { 
-            border-right: 5px solid #fff; 
-            max-width: 50px; 
-            background: #222; 
-            color: #bbb; 
-        }
-        .range-fret:last-child { border-right: none; }
+        .btn-container { display: flex; gap: 10px; margin-top: 15px; }
+        button { flex: 1; background-color: var(--accent-color); color: white; border: none; padding: 12px; border-radius: 8px; font-weight: 600; cursor: pointer; }
+        button:disabled { background-color: #3a3a3c; color: var(--text-muted); cursor: not-allowed; }
         
-        .range-fret.in-range { background: #007aff; color: #fff; }
-        .range-fret.boundary { background: #0056b3; color: #fff; font-weight: 900; box-shadow: inset 0 0 10px rgba(255,255,255,0.4); }
+        /* Fretboard Range Selector Graphic styling */
+        .range-selector-container { margin: 15px 0 5px 0; }
+        .selector-board { display: flex; background: #2c251e; border: 2px solid #1a1512; border-radius: 6px; overflow: hidden; height: 40px; }
+        .selector-fret { flex: 1; display: flex; align-items: center; justify-content: center; border-right: 1px solid #d4af37; cursor: pointer; font-size: 11px; font-weight: bold; color: var(--text-muted); user-select: none; position: relative; }
+        .selector-fret:first-child { flex: 0 0 45px; border-right: 3px solid #fff; background-color: rgba(0,0,0,0.4); }
+        .selector-fret.active-range { background-color: var(--fret-selected); color: #fff; }
+        .selector-fret.range-edge { background-color: var(--accent-color); color: #fff; }
 
-        .commands-hint {
-            color: #ffcc00;
-            font-size: 14px;
-            margin-bottom: 30px;
-            font-style: italic;
-        }
-        .card {
-            background: #1e1e1e;
-            padding: 30px;
-            border-radius: 12px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.5);
-            margin-bottom: 20px;
-        }
-        button {
-            background: #007aff;
-            color: white;
-            border: none;
-            padding: 12px 24px;
-            font-size: 16px;
-            font-weight: bold;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: background 0.2s;
-            margin: 10px;
-        }
-        button:hover { background: #0056b3; }
-        button:disabled { background: #444; color: #888; cursor: not-allowed; }
+        .status-area { height: 75px; display: flex; flex-direction: column; justify-content: center; align-items: center; margin: 10px 0; }
+        #status { font-size: 18px; font-weight: 500; text-align: center; }
+        .stage-active { color: var(--warning-color); }
+        .success { color: var(--success-color); }
         
-        .status-box {
-            font-size: 18px;
-            margin: 20px 0;
-            padding: 15px;
-            border-radius: 6px;
-            background: #2a2a2a;
-            font-weight: 500;
-            min-height: 28px;
-        }
+        .hint-box { width: 100%; max-width: 400px; padding: 8px; border-radius: 6px; background-color: #2c2c2e; font-weight: 600; text-align: center; margin-top: 5px; visibility: hidden; opacity: 0; transition: opacity 0.15s ease; }
+        .pitch-match { background-color: rgba(52, 199, 89, 0.2); color: #34c759; }
+        .pitch-low { background-color: rgba(255, 149, 0, 0.2); color: #ff9500; }
+        .pitch-high { background-color: rgba(255, 59, 48, 0.2); color: #ff3b30; }
         
-        .hint-box {
-            font-size: 20px;
-            font-weight: bold;
-            margin: 15px 0;
-            padding: 10px;
-            border-radius: 6px;
-            display: none;
-            background: #151515;
-        }
-        .pitch-low { color: #ff9500; }
-        .pitch-high { color: #ff3b30; }
-        .pitch-match { color: #4cd964; }
-
-        .stage-active { color: #007aff; font-weight: bold; }
-        .success { color: #4cd964; }
-        .target-display {
-            font-size: 48px;
-            font-weight: bold;
-            color: #ffcc00;
-            margin: 20px 0;
-            visibility: hidden;
-        }
+        #letter-display { font-size: 72px; font-weight: 800; text-align: center; margin: 20px 0; display: none; }
         
-        .fretboard {
-            display: flex;
-            flex-direction: column-reverse;
-            background: #2d1a10;
-            padding: 10px;
-            border-radius: 6px;
-            margin-top: 25px;
-            border: 2px solid #1a0f0a;
-            display: none;
-        }
-        .string {
-            display: flex;
-            height: 24px;
-            align-items: center;
-            position: relative;
-            border-bottom: 1px solid #555;
-        }
-        .string::before {
-            content: '';
-            position: absolute;
-            left: 0; right: 0; top: 50%;
-            height: var(--thickness, 1px);
-            background: #aaa;
-            z-index: 1;
-        }
-        .fret {
-            flex: 1;
-            position: relative;
-            height: 100%;
-            z-index: 2;
-            border-right: 3px solid #d4af37;
-        }
-        .fret:first-child { border-right: 5px solid #fff; max-width: 40px; }
-        .note-marker {
-            position: absolute;
-            top: 50%; left: 50%;
-            transform: translate(-50%, -50%);
-            width: 16px; height: 16px;
-            background: #ff3b30;
-            border-radius: 50%;
-            display: none;
-            box-shadow: 0 0 8px #ff3b30;
-        }
+        .notation-container { display: block; visibility: hidden; height: 0; overflow: hidden; background: white; border-radius: 8px; padding: 0; margin-top: 0; transition: all 0.2s ease; }
+        .notation-container.visible { visibility: visible; height: 160px; padding: 15px; margin-top: 15px; display: flex; justify-content: center; overflow-x: auto; }
+        
+        .fretboard-wrapper { width: 100%; overflow-x: auto; background: #2c251e; border-radius: 6px; border: 2px solid #1a1512; margin-top: 15px; padding: 10px 0; display: block; visibility: hidden; height: 0; overflow-y: hidden; transition: all 0.2s ease; }
+        .fretboard-wrapper.visible { visibility: visible; height: auto; padding: 10px 0; }
+        
+        .fretboard { display: flex; flex-direction: column; min-width: 780px; }
+        .string { display: flex; height: 30px; align-items: center; position: relative; }
+        .string::before { content: ''; position: absolute; left: 0; right: 0; height: 2px; background: #b5b5b5; z-index: 1; }
+        .string::after { content: attr(data-string-label); position: absolute; left: -15px; color: var(--text-muted); font-size: 12px; font-weight: bold; z-index: 3; }
+        .fret { flex: 0 0 55px; height: 100%; border-right: 2px solid #d4af37; position: relative; display: flex; align-items: center; justify-content: center; z-index: 2; }
+        .fret:first-child { flex: 0 0 35px; border-right: 5px solid #fff; background-color: rgba(0,0,0,0.4); }
+        .note-marker { width: 20px; height: 20px; border-radius: 50%; background-color: var(--danger-color); display: none; align-items: center; justify-content: center; font-size: 11px; font-weight: bold; color: white; z-index: 4; }
+        
+        pre#tab-display { background-color: #000; color: #34c759; padding: 18px; border-radius: 8px; font-family: 'Courier New', monospace; overflow-x: hidden; display: none; white-space: pre; line-height: 1.5; margin-top: 15px; width: 100%; box-sizing: border-box; }
     </style>
 </head>
 <body>
 
-    <h1>Brenton's Ear Trainer</h1>
-    <div class="subtitle">Custom Scale Ear Training Partner</div>
-    
-    <div class="selector-container">
-        <select id="root-select">
-            <option value="C">C</option>
-            <option value="C#">C# / Db</option>
-            <option value="D">D</option>
-            <option value="D#">D# / Eb</option>
-            <option value="E">E</option>
-            <option value="F">F</option>
-            <option value="F#">F# / Gb</option>
-            <option value="G">G</option>
-            <option value="G#">G# / Ab</option>
-            <option value="A">A</option>
-            <option value="A#">A# / Bb</option>
-            <option value="B">B</option>
-        </select>
-        
-        <select id="type-select">
-            <option value="major">Major Scale</option>
-            <option value="minor">Natural Minor Scale</option>
-        </select>
+<div class="container">
+    <div class="card">
+        <h2>Brenton's Ear Trainer</h2>
+        <div class="controls-grid">
+            <div class="control-group">
+                <label>Root Key</label>
+                <select id="root-select">
+                    <option value="C">C</option>
+                    <option value="C#">C# / Db</option>
+                    <option value="D">D</option>
+                    <option value="D#">D# / Eb</option>
+                    <option value="E" selected>E</option>
+                    <option value="F">F</option>
+                    <option value="F#">F# / Gb</option>
+                    <option value="G">G</option>
+                    <option value="G#">G# / Ab</option>
+                    <option value="A">A</option>
+                    <option value="A#">A# / Bb</option>
+                    <option value="B">B</option>
+                </select>
+            </div>
+            <div class="control-group">
+                <label>Scale Type</label>
+                <select id="type-select">
+                    <option value="major">Major Scale</option>
+                    <option value="minor">Minor Scale</option>
+                    <option value="major_pentatonic">Major Pentatonic</option>
+                    <option value="minor_pentatonic" selected>Minor Pentatonic</option>
+                </select>
+            </div>
+            <div class="control-group">
+                <label>Total Notes to Play</label>
+                <input type="number" id="beat-count" min="1" max="16" value="4">
+            </div>
+            <div class="control-group">
+                <label>Max Rhythm Form</label>
+                <select id="rhythm-select">
+                    <option value="4">Quarter Notes</option>
+                    <option value="8">8th Notes</option>
+                    <option value="12">Triplet Notes</option>
+                    <option value="16">16th Notes</option>
+                </select>
+            </div>
+            <div class="control-group">
+                <label>Tempo: <span id="bpm-val">100</span> BPM</label>
+                <input type="range" id="tempo-range" min="40" max="180" value="100">
+            </div>
+        </div>
 
-        <div class="toggle-wrapper">
-            <span class="toggle-label">Use Hints</span>
-            <label class="switch">
-                <input type="checkbox" id="hints-toggle" checked>
-                <span class="slider"></span>
-            </label>
+        <div class="range-selector-container">
+            <label>Fretboard Training Range: Frets <span id="range-label">0 - 12</span></label>
+            <div class="selector-board" id="selector-board"></div>
+        </div>
+
+        <div class="btn-container">
+            <button id="start-btn">Start Session</button>
+            <button id="listen-btn" disabled>Play Again</button>
+            <button id="reveal-btn" disabled>Reveal Answer</button>
         </div>
     </div>
-
-    <div class="range-panel">
-        <div class="range-title" id="range-status-text">Fret Window Zone: 0 to 12 (Full Board)</div>
-        <div class="range-fretboard" id="range-selector-board">
-            <div class="range-fret in-range" data-fret="0">Open</div>
-            <div class="range-fret in-range" data-fret="1">1</div>
-            <div class="range-fret in-range" data-fret="2">2</div>
-            <div class="range-fret in-range" data-fret="3">3</div>
-            <div class="range-fret in-range" data-fret="4">4</div>
-            <div class="range-fret in-range" data-fret="5">5</div>
-            <div class="range-fret in-range" data-fret="6">6</div>
-            <div class="range-fret in-range" data-fret="7">7</div>
-            <div class="range-fret in-range" data-fret="8">8</div>
-            <div class="range-fret in-range" data-fret="9">9</div>
-            <div class="range-fret in-range" data-fret="10">10</div>
-            <div class="range-fret in-range" data-fret="11">11</div>
-            <div class="range-fret in-range" data-fret="12">12</div>
-        </div>
-    </div>
-
-    <div class="commands-hint">Hands-Free Active: Say "Next" to advance or "Repeat" to hear the note again!</div>
 
     <div class="card">
-        <button id="start-btn">Start Session</button>
-        <button id="listen-btn" disabled>Play Note Again</button>
-        <button id="reveal-btn" disabled>Show Answer</button>
-
-        <div class="status-box" id="status">Select your scale and fret range, then click "Start Session".</div>
-        
-        <div class="hint-box" id="hint-display"></div>
-        
-        <div class="target-display" id="letter-display">C</div>
-
-        <div class="fretboard" id="fretboard">
-            <div class="string" style="--thickness: 1px;" data-string="E1"></div>
-            <div class="string" style="--thickness: 1.5px;" data-string="B"></div>
-            <div class="string" style="--thickness: 2px;" data-string="G"></div>
-            <div class="string" style="--thickness: 2.5px;" data-string="D"></div>
-            <div class="string" style="--thickness: 3px;" data-string="A"></div>
-            <div class="string" style="--thickness: 3.5px;" data-string="E6"></div>
+        <div class="status-area">
+            <div id="status">Press "Start Session" to begin.</div>
+            <div id="hint-display" class="hint-box"></div>
         </div>
+        
+        <div id="letter-display">E</div>
+        
+        <div class="notation-container" id="notation-container">
+            <svg id="notation-svg" width="500" height="140" viewBox="0 0 500 140"></svg>
+        </div>
+
+        <div class="fretboard-wrapper" id="fretboard-wrapper">
+            <div class="fretboard" id="fretboard">
+                <div class="string" data-string="E1" data-string-label="e"></div>
+                <div class="string" data-string="B" data-string-label="B"></div>
+                <div class="string" data-string="G" data-string-label="G"></div>
+                <div class="string" data-string="D" data-string-label="D"></div>
+                <div class="string" data-string="A" data-string-label="A"></div>
+                <div class="string" data-string="E6" data-string-label="E"></div>
+            </div>
+        </div>
+        <pre id="tab-display"></pre>
     </div>
+</div>
 
-    <script>
-        const masterNotes = [
-            { name: 'E', freq: 82.41, string: 'E6', fret: 0 },
-            { name: 'F', freq: 87.31, string: 'E6', fret: 1 },
-            { name: 'F#', freq: 92.50, string: 'E6', fret: 2 },
-            { name: 'G', freq: 98.00, string: 'E6', fret: 3 },
-            { name: 'G#', freq: 103.83, string: 'E6', fret: 4 },
-            { name: 'A', freq: 110.00, string: 'A', fret: 0 },
-            { name: 'A#', freq: 116.54, string: 'A', fret: 1 },
-            { name: 'B', freq: 123.47, string: 'A', fret: 2 },
-            { name: 'C', freq: 130.81, string: 'A', fret: 3 },
-            { name: 'C#', freq: 138.59, string: 'A', fret: 4 },
-            { name: 'D', freq: 146.83, string: 'D', fret: 0 },
-            { name: 'D#', freq: 155.56, string: 'D', fret: 1 },
-            { name: 'E', freq: 164.81, string: 'D', fret: 2 },
-            { name: 'F', freq: 174.61, string: 'D', fret: 3 },
-            { name: 'F#', freq: 185.00, string: 'D', fret: 4 },
-            { name: 'G', freq: 196.00, string: 'G', fret: 0 },
-            { name: 'G#', freq: 207.65, string: 'G', fret: 1 },
-            { name: 'A', freq: 220.00, string: 'G', fret: 2 },
-            { name: 'A#', freq: 233.08, string: 'G', fret: 3 },
-            { name: 'B', freq: 246.94, string: 'B', fret: 0 },
-            { name: 'C', freq: 261.63, string: 'B', fret: 1 },
-            { name: 'C#', freq: 277.18, string: 'B', fret: 2 },
-            { name: 'D', freq: 293.66, string: 'B', fret: 3 },
-            { name: 'D#', freq: 311.13, string: 'B', fret: 4 },
-            { name: 'E', freq: 329.63, string: 'E1', fret: 0 },
-            { name: 'F', freq: 349.23, string: 'E1', fret: 1 },
-            { name: 'F#', freq: 369.99, string: 'E1', fret: 2 },
-            { name: 'G', freq: 392.00, string: 'E1', fret: 3 },
-            { name: 'G#', freq: 415.30, string: 'E1', fret: 4 },
-            { name: 'A', freq: 440.00, string: 'E1', fret: 5 },
-            { name: 'C', freq: 130.81, string: 'E6', fret: 8 },
-            { name: 'D', freq: 146.83, string: 'A', fret: 5 },
-            { name: 'E', freq: 164.81, string: 'A', fret: 7 },
-            { name: 'G', freq: 196.00, string: 'D', fret: 5 },
-            { name: 'A', freq: 220.00, string: 'D', fret: 7 },
-            { name: 'B', freq: 246.94, string: 'D', fret: 9 },
-            { name: 'C', freq: 261.63, string: 'D', fret: 10 },
-            { name: 'D', freq: 293.66, string: 'G', fret: 7 },
-            { name: 'E', freq: 329.63, string: 'G', fret: 9 },
-            { name: 'F', freq: 349.23, string: 'G', fret: 10 },
-            { name: 'G', freq: 392.00, string: 'B', fret: 8 },
-            { name: 'A', freq: 440.00, string: 'B', fret: 10 },
-            { name: 'B', freq: 493.88, string: 'E1', fret: 7 },
-            { name: 'C', freq: 523.25, string: 'E1', fret: 8 },
-            { name: 'D', freq: 587.33, string: 'E1', fret: 10 },
-            { name: 'E', freq: 659.25, string: 'E1', fret: 12 }
-        ];
+<script>
+// Chronological standard guitar fretboard mapping up to fret 12
+const masterNotes = [];
+const stringRoots = [
+    { name: 'E1', openMidi: 64, label: 'e' },
+    { name: 'B',  openMidi: 59, label: 'B' },
+    { name: 'G',  openMidi: 55, label: 'G' },
+    { name: 'D',  openMidi: 50, label: 'D' },
+    { name: 'A',  openMidi: 45, label: 'A' },
+    { name: 'E6', openMidi: 40, label: 'E' }
+];
+const noteNamesMap = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
 
-        let minFret = 0;
-        let maxFret = 12;
-        let firstClickFret = null;
-
-        let activeScaleNotes = [];
-        let audioCtx = null;
-        let currentNote = null;
-        let currentStage = 'idle'; 
-        let analyser = null;
-        let micStream = null;
-        let sampleBuffer = new Float32Array(2048);
+stringRoots.forEach(sr => {
+    for (let f = 0; f <= 12; f++) {
+        let midi = sr.openMidi + f;
+        let name = noteNamesMap[midi % 12];
+        let freq = 440 * Math.pow(2, (midi - 69) / 12);
         
-        let isChecking = false;
-        let cooldownActive = false; 
+        // standard guitar notation transposition helper (written 1 octave higher than sounds)
+        // Midi 60 (Middle C) is written on the 1st ledger line below staff
+        let writtenStepsFromMiddleC = (midi + 12) - 60; 
         
-        let consecutiveMatches = 0;
-        const REQUIRED_STREAK = 15; 
-        let activeSynthesizers = []; 
-
-        const startBtn = document.getElementById('start-btn');
-        const listenBtn = document.getElementById('listen-btn');
-        const revealBtn = document.getElementById('reveal-btn');
-        const statusDiv = document.getElementById('status');
-        const hintDisplay = document.getElementById('hint-display');
-        const letterDisplay = document.getElementById('letter-display');
-        const fretboardDiv = document.getElementById('fretboard');
-        const rootSelect = document.getElementById('root-select');
-        const typeSelect = document.getElementById('type-select');
-        const hintsToggle = document.getElementById('hints-toggle');
-        const rangeStatusText = document.getElementById('range-status-text');
-
-        function handleRangeSelection(fretNum) {
-            if (firstClickFret === null) {
-                firstClickFret = fretNum;
-                minFret = fretNum;
-                maxFret = fretNum;
-            } else {
-                minFret = Math.min(firstClickFret, fretNum);
-                maxFret = Math.max(firstClickFret, fretNum);
-                firstClickFret = null;
-            }
-            updateRangeUI();
-            buildActiveScale();
-        }
-
-        function updateRangeUI() {
-            rangeStatusText.innerText = `Fret Window Zone: ${minFret} to ${maxFret}`;
-            document.querySelectorAll('.range-fret').forEach(fretEl => {
-                let f = parseInt(fretEl.dataset.fret);
-                fretEl.className = 'range-fret';
-                if (f >= minFret && f <= maxFret) {
-                    fretEl.classList.add('in-range');
+        // Diatonic step offset lookup for positioning graphics on lines/spaces
+        let standardDiatonicSteps = 0;
+        let baseMidi = 60;
+        if (midi + 12 > baseMidi) {
+            for (let m = baseMidi; m < midi + 12; m++) {
+                let stepMod = m % 12;
+                if (stepMod !== 1 && stepMod !== 3 && stepMod !== 6 && stepMod !== 8 && stepMod !== 10) {
+                    standardDiatonicSteps++;
                 }
-                if (f === minFret || f === maxFret) {
-                    fretEl.classList.add('boundary');
-                }
-            });
-        }
-
-        function buildActiveScale() {
-            const rootName = rootSelect.value;
-            const scaleType = typeSelect.value;
-            
-            let scaleNoteNames = new Set();
-            let scaleTemplate = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
-            let rootOffset = scaleTemplate.indexOf(rootName);
-            let steps = scaleType === 'major' ? [0,2,4,5,7,9,11] : [0,2,3,5,7,8,10];
-            
-            steps.forEach(st => {
-                scaleNoteNames.add(scaleTemplate[(rootOffset + st) % 12]);
-            });
-            
-            activeScaleNotes = masterNotes.filter(note => {
-                return scaleNoteNames.has(note.name) && note.fret >= minFret && note.fret <= maxFret;
-            });
-        }
-
-        document.querySelectorAll('.fretboard .string').forEach(str => {
-            for(let i=0; i<=12; i++) {
-                let fret = document.createElement('div');
-                fret.className = 'fret';
-                let marker = document.createElement('div');
-                marker.className = 'note-marker';
-                fret.appendChild(marker);
-                str.appendChild(fret);
             }
+        } else {
+            for (let m = baseMidi; m > midi + 12; m--) {
+                let stepMod = (m - 1) % 12;
+                if (stepMod !== 1 && stepMod !== 3 && stepMod !== 6 && stepMod !== 8 && stepMod !== 10) {
+                    standardDiatonicSteps--;
+                }
+            }
+        }
+        
+        // Staff baseline configurations (Line 5 center point assignment)
+        let staffY = 85 - (standardDiatonicSteps * 5); 
+
+        masterNotes.push({
+            name: name,
+            freq: parseFloat(freq.toFixed(2)),
+            string: sr.name,
+            fret: f,
+            staffY: staffY,
+            midi: midi
         });
+    }
+});
 
-        function ensureAudioContext() {
-            if (!audioCtx) {
-                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            }
-            if (audioCtx.state === 'suspended') {
-                audioCtx.resume();
-            }
+let activeScaleNotes = [], audioCtx = null, currentNote = null, currentRiff = [];
+let currentRiffIndex = 0, currentStage = 'idle', analyser = null, micStream = null;
+let sampleBuffer = new Float32Array(2048), consecutiveMatches = 0;
+let isAudioPlaying = false, hasStarted = false, speechRecognizer = null; 
+let totalBarsCalculated = 1;
+let activeOscillators = [];
+
+// Range filter boundary states
+let minSelectedFret = 0;
+let maxSelectedFret = 12;
+
+const startBtn = document.getElementById('start-btn'), listenBtn = document.getElementById('listen-btn'), revealBtn = document.getElementById('reveal-btn');
+const statusDiv = document.getElementById('status'), hintDisplay = document.getElementById('hint-display'), letterDisplay = document.getElementById('letter-display');
+const fretboardWrapper = document.getElementById('fretboard-wrapper'), tabDisplay = document.getElementById('tab-display'), tempoRange = document.getElementById('tempo-range');
+const notationContainer = document.getElementById('notation-container'), notationSvg = document.getElementById('notation-svg');
+
+// Render structural elements on reveal boards
+document.querySelectorAll('.fretboard .string').forEach(str => {
+    for(let i=0; i<=12; i++) {
+        let fret = document.createElement('div'); fret.className = 'fret';
+        let marker = document.createElement('div'); marker.className = 'note-marker';
+        fret.appendChild(marker); str.appendChild(fret);
+    }
+});
+
+// Build visual interactive Fret Selector Widget UI elements
+const selectorBoard = document.getElementById('selector-board');
+for (let f = 0; f <= 12; f++) {
+    let sf = document.createElement('div');
+    sf.className = 'selector-fret';
+    sf.dataset.fret = f;
+    sf.innerText = f === 0 ? 'Open' : f.toString();
+    selectorBoard.appendChild(sf);
+    
+    sf.addEventListener('click', () => {
+        handleFretSelection(f);
+    });
+}
+updateSelectorUI();
+
+function handleFretSelection(fret) {
+    if (minSelectedFret === fret && maxSelectedFret === fret) {
+        minSelectedFret = 0; maxSelectedFret = 12;
+    } else if (fret < minSelectedFret) {
+        minSelectedFret = fret;
+    } else if (fret > maxSelectedFret) {
+        maxSelectedFret = fret;
+    } else {
+        if (fret - minSelectedFret < maxSelectedFret - fret) {
+            minSelectedFret = fret;
+        } else {
+            maxSelectedFret = fret;
         }
+    }
+    updateSelectorUI();
+}
 
-        startBtn.addEventListener('click', () => {
-            buildActiveScale();
-            ensureAudioContext();
+function updateSelectorUI() {
+    document.getElementById('range-label').innerText = `${minSelectedFret} - ${maxSelectedFret}`;
+    document.querySelectorAll('.selector-fret').forEach(sf => {
+        let f = parseInt(sf.dataset.fret);
+        sf.className = 'selector-fret';
+        if (f >= minSelectedFret && f <= maxSelectedFret) sf.classList.add('active-range');
+        if (f === minSelectedFret || f === maxSelectedFret) sf.classList.add('range-edge');
+    });
+}
+
+tempoRange.addEventListener('input', () => { updateBPMDisplay(parseInt(tempoRange.value)); });
+
+function updateBPMDisplay(newBpm) {
+    let boundBpm = Math.max(40, Math.min(180, newBpm));
+    tempoRange.value = boundBpm;
+    document.getElementById('bpm-val').innerText = boundBpm;
+}
+
+function stopAllActiveAudio() {
+    activeOscillators.forEach(osc => {
+        try {
+            osc.stop();
+            osc.disconnect();
+        } catch(e) {}
+    });
+    activeOscillators = [];
+}
+
+function buildActiveScale() {
+    const rootName = document.getElementById('root-select').value;
+    const scaleType = document.getElementById('type-select').value;
+    let scaleTemplate = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+    let offset = scaleTemplate.indexOf(rootName);
+    
+    let steps = [0,2,4,5,7,9,11]; 
+    if (scaleType === 'minor') steps = [0,2,3,5,7,8,10];
+    else if (scaleType === 'major_pentatonic') steps = [0,2,4,7,9];
+    else if (scaleType === 'minor_pentatonic') steps = [0,3,5,7,10];
+
+    let names = steps.map(st => scaleTemplate[(offset + st) % 12]);
+    
+    // Core functional adjustment: Apply graphic slider constraints right to generation buffer pool
+    activeScaleNotes = masterNotes.filter(n => names.includes(n.name) && n.fret >= minSelectedFret && n.fret <= maxSelectedFret);
+    
+    // Safety fallback state handling to prevent complete engine lockup arrays
+    if (activeScaleNotes.length === 0) {
+        statusDiv.innerHTML = `<span style="color:var(--danger-color)">No notes found in fret range! Expanding window...</span>`;
+        activeScaleNotes = masterNotes.filter(n => names.includes(n.name));
+    }
+}
+
+startBtn.addEventListener('click', () => {
+    buildActiveScale();
+    if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        setupMicrophone();
+        setupVoiceCommands();
+    }
+    hasStarted = true;
+    nextExercise();
+});
+
+listenBtn.addEventListener('click', () => { playCurrentAudio(); });
+revealBtn.addEventListener('click', revealAnswer);
+
+function nextExercise() {
+    stopAllActiveAudio();
+    isAudioPlaying = true;
+    consecutiveMatches = 0;
+    letterDisplay.style.display = 'none';
+    
+    fretboardWrapper.classList.remove('visible');
+    notationContainer.classList.remove('visible');
+    tabDisplay.style.display = 'none';
+    document.querySelectorAll('.note-marker').forEach(m => { m.style.display = 'none'; m.innerText = ''; });
+
+    const totalNotesRequested = parseInt(document.getElementById('beat-count').value);
+    const maxRhythm = parseInt(document.getElementById('rhythm-select').value);
+    
+    if (totalNotesRequested === 1) {
+        startBtn.innerText = "Next Note";
+        currentRiff = [];
+        currentNote = { ...activeScaleNotes[Math.floor(Math.random() * activeScaleNotes.length)] };
+        currentNote.rhythmType = 4;
+        currentNote.beatIndex = 0;
+        currentNote.subDivIndex = 0;
+        currentStage = 'singing';
+        statusDiv.innerHTML = `<span class="stage-active">Listen...</span> Play/sing or use voice commands!`;
+    } else {
+        startBtn.innerText = "Next Riff";
+        currentNote = null;
+        currentRiff = [];
+
+        totalBarsCalculated = Math.max(1, Math.ceil(totalNotesRequested / 4));
+        const totalQuarterBeats = totalBarsCalculated * 4;
+        
+        let subdivisionsPerBeat = 1;
+        if (maxRhythm === 8) subdivisionsPerBeat = 2;
+        if (maxRhythm === 12) subdivisionsPerBeat = 3;
+        if (maxRhythm === 16) subdivisionsPerBeat = 4;
+        
+        const totalAvailableSlots = totalQuarterBeats * subdivisionsPerBeat;
+        
+        let chosenSlots = [];
+        while(chosenSlots.length < Math.min(totalNotesRequested, totalAvailableSlots)) {
+            let randSlot = Math.floor(Math.random() * totalAvailableSlots);
+            if(!chosenSlots.includes(randSlot)) chosenSlots.push(randSlot);
+        }
+        chosenSlots.sort((a, b) => a - b);
+
+        const archetype = Math.floor(Math.random() * 3);
+        let baseScaleIdx = Math.floor(Math.random() * activeScaleNotes.length);
+
+        chosenSlots.forEach((slotIndex, i) => {
+            let totalSubdivIndex = slotIndex;
+            let beatIndex = Math.floor(totalSubdivIndex / subdivisionsPerBeat);
+            let subDivIndex = totalSubdivIndex % subdivisionsPerBeat;
+            let currentScaleIdx = baseScaleIdx;
+
+            if (archetype === 0) {
+                let chordIntervals = [0, 2, 4, 6];
+                let intervalOffset = chordIntervals[i % chordIntervals.length];
+                currentScaleIdx = (baseScaleIdx + intervalOffset) % activeScaleNotes.length;
+            } else if (archetype === 1) {
+                let pentatonicPattern = [0, 1, 2, 1, 3, 2, 4, 3];
+                let patternOffset = pentatonicPattern[i % pentatonicPattern.length];
+                currentScaleIdx = (baseScaleIdx + patternOffset) % activeScaleNotes.length;
+            } else {
+                let melodicSteps = [0, 2, 3, 1, 4, 2, 0];
+                let progressionOffset = melodicSteps[i % melodicSteps.length];
+                currentScaleIdx = (baseScaleIdx + progressionOffset) % activeScaleNotes.length;
+            }
+
+            let noteCopy = { ...activeScaleNotes[currentScaleIdx] };
+            noteCopy.rhythmType = maxRhythm;
+            noteCopy.beatIndex = beatIndex;
+            noteCopy.subDivIndex = subDivIndex;
+            currentRiff.push(noteCopy);
+        });
+        
+        currentRiffIndex = 0;
+        currentStage = 'riff_tracking';
+        statusDiv.innerHTML = `<span class="stage-active">Listen to Riff...</span> Repeat it back note-by-note!`;
+    }
+
+    listenBtn.disabled = false;
+    revealBtn.disabled = false;
+    playCurrentAudio();
+}
+
+function playCurrentAudio() {
+    stopAllActiveAudio();
+    isAudioPlaying = true;
+    consecutiveMatches = 0; 
+    const bpm = parseInt(tempoRange.value);
+    const beatDuration = 60 / bpm;
+    const now = audioCtx.currentTime;
+
+    if (currentNote) {
+        playSynthTone(currentNote.freq, now, beatDuration * 0.85);
+        setTimeout(() => { isAudioPlaying = false; }, beatDuration * 1000 + 100);
+    } else if (currentRiff.length > 0) {
+        let totalPlayTime = 0;
+        let subdivisionsPerBeat = 1;
+        if (currentRiff[0].rhythmType === 16) subdivisionsPerBeat = 4;
+        else if (currentRiff[0].rhythmType === 12) subdivisionsPerBeat = 3;
+        else if (currentRiff[0].rhythmType === 8) subdivisionsPerBeat = 2;
+        
+        currentRiff.forEach((note) => {
+            let noteDuration = beatDuration / subdivisionsPerBeat;
+            let startTime = now + (note.beatIndex * beatDuration) + (note.subDivIndex * noteDuration);
             
-            if (activeScaleNotes.length === 0) {
-                statusDiv.innerHTML = `<span style="color:#ff3b30">No matching scale notes found inside fret range! Expand range boundaries.</span>`;
-                return;
-            }
+            playSynthTone(note.freq, startTime, noteDuration * 0.95);
+            totalPlayTime = Math.max(totalPlayTime, (startTime - now) + noteDuration);
+        });
+        
+        setTimeout(() => { isAudioPlaying = false; }, (totalPlayTime * 1000) + 100);
+    }
+}
 
-            if (!micStream) {
-                setupMicrophone(); 
-                setupSpeechRecognition();
-            }
-            startBtn.innerText = "Next Note";
+function playSynthTone(freq, start, duration) {
+    const osc = audioCtx.createOscillator();
+    const subOsc = audioCtx.createOscillator(); 
+    const gain = audioCtx.createGain();
+    
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(freq, start);
+    
+    subOsc.type = 'sine';
+    subOsc.frequency.setValueAtTime(freq * 2, start); 
+
+    gain.gain.setValueAtTime(0, start);
+    gain.gain.linearRampToValueAtTime(0.4, start + 0.004); 
+    gain.gain.exponentialRampToValueAtTime(0.12, start + 0.08); 
+    gain.gain.linearRampToValueAtTime(0.001, start + duration);
+
+    osc.connect(gain);
+    subOsc.connect(gain);
+    gain.connect(audioCtx.destination);
+    
+    activeOscillators.push(osc);
+    activeOscillators.push(subOsc);
+    
+    osc.start(start);
+    subOsc.start(start);
+    osc.stop(start + duration);
+    subOsc.stop(start + duration);
+}
+
+function setupMicrophone() {
+    navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } })
+    .then(stream => {
+        micStream = stream;
+        analyser = audioCtx.createAnalyser();
+        analyser.fftSize = 2048;
+        audioCtx.createMediaStreamSource(stream).connect(analyser);
+        listenPitch();
+    }).catch(err => console.error("Microphone integration failed:", err));
+}
+
+function setupVoiceCommands() {
+    const SpeechSDK = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechSDK) return;
+
+    speechRecognizer = new SpeechSDK();
+    speechRecognizer.continuous = true;
+    speechRecognizer.interimResults = false;
+    speechRecognizer.lang = 'en-US';
+
+    speechRecognizer.onresult = (event) => {
+        let text = event.results[event.results.length - 1][0].transcript.trim().toLowerCase().replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g,"");
+        if (text.includes('next')) {
             nextExercise();
-        });
-
-        // CRITICAL UPDATE: Manual click handler re-triggers stage loop validation sequence
-        listenBtn.addEventListener('click', () => { 
-            ensureAudioContext();
-            if (currentNote) {
-                triggerSequenceReset();
-            }
-        });
-        
-        revealBtn.addEventListener('click', () => {
-            letterDisplay.style.visibility = 'visible';
-            fretboardDiv.style.display = 'flex';
-            highlightFret(currentNote.string, currentNote.fret);
-        });
-
-        rootSelect.addEventListener('change', () => { startBtn.innerText = "Start Session"; listenBtn.disabled = true; revealBtn.disabled = true; resetHints(); buildActiveScale(); });
-        typeSelect.addEventListener('change', () => { startBtn.innerText = "Start Session"; listenBtn.disabled = true; revealBtn.disabled = true; resetHints(); buildActiveScale(); });
-        hintsToggle.addEventListener('change', () => { if (!hintsToggle.checked) resetHints(); });
-
-        function resetHints() {
-            hintDisplay.style.display = 'none';
-            hintDisplay.innerText = '';
+        } else if (text.includes('repeat')) {
+            playCurrentAudio();
+        } else if (text.includes('faster')) {
+            let newBpm = parseInt(tempoRange.value) + 20;
+            updateBPMDisplay(newBpm);
+        } else if (text.includes('slower')) {
+            let newBpm = parseInt(tempoRange.value) - 20;
+            updateBPMDisplay(newBpm);
         }
+    };
 
-        // CRITICAL UPDATE: Unified reset handling pipeline logic for Repeat activations
-        function triggerSequenceReset() {
-            consecutiveMatches = 0;
-            currentStage = 'singing';
-            statusDiv.innerHTML = `<span class="stage-active">Stage 1:</span> Match the tone with your voice! Singing...`;
-            
-            cooldownActive = true;
-            playSyntheticGuitarString(currentNote.freq);
-            setTimeout(() => { cooldownActive = false; }, 500);
-        }
+    speechRecognizer.onerror = (e) => { console.log("Speech recognizer error handled safely: ", e.error); };
+    speechRecognizer.onend = () => { try { speechRecognizer.start(); } catch(e){} };
+    speechRecognizer.start();
+}
 
-        function nextExercise() {
-            stopAllAudio();
-            letterDisplay.style.visibility = 'hidden';
-            fretboardDiv.style.display = 'none';
-            document.querySelectorAll('.note-marker').forEach(m => m.style.display = 'none');
-            resetHints();
+function listenPitch() {
+    requestAnimationFrame(listenPitch);
+    if (!analyser || isAudioPlaying || currentStage === 'idle') return;
 
-            if(activeScaleNotes.length === 0) buildActiveScale();
-            
-            currentNote = activeScaleNotes[Math.floor(Math.random() * activeScaleNotes.length)];
-            letterDisplay.innerText = currentNote.name;
-            
-            listenBtn.disabled = false;
-            revealBtn.disabled = false;
-            
-            triggerSequenceReset();
-            
-            if(!isChecking) {
-                isChecking = true;
-                listenPitch();
-            }
-        }
+    analyser.getFloatTimeDomainData(sampleBuffer);
+    let rms = 0;
+    for (let i = 0; i < sampleBuffer.length; i++) rms += sampleBuffer[i] * sampleBuffer[i];
+    rms = Math.sqrt(rms / sampleBuffer.length);
 
-        function stopAllAudio() {
-            activeSynthesizers.forEach(node => { try { node.stop(); } catch(e){} });
-            activeSynthesizers = [];
-        }
+    if (rms < 0.04) { 
+        hintDisplay.style.visibility = 'hidden'; 
+        hintDisplay.style.opacity = '0'; 
+        return; 
+    }
 
-        function playSyntheticGuitarString(frequency) {
-            stopAllAudio();
-            if (!audioCtx) return;
+    if (currentStage === 'riff_tracking' && currentRiffIndex >= currentRiff.length) return;
 
-            const now = audioCtx.currentTime;
-            const totalDuration = 4.0; 
-            
-            const lowpassFilter = audioCtx.createBiquadFilter();
-            lowpassFilter.type = 'lowpass';
-            lowpassFilter.frequency.setValueAtTime(1000, now);
-            lowpassFilter.frequency.linearRampToValueAtTime(350, now + totalDuration);
-            lowpassFilter.connect(audioCtx.destination);
+    let pitch = autoCorrelate(sampleBuffer, audioCtx.sampleRate);
+    let target = currentNote ? currentNote : currentRiff[currentRiffIndex];
 
-            const masterGain = audioCtx.createGain();
-            masterGain.gain.setValueAtTime(0.0, now);
-            masterGain.gain.linearRampToValueAtTime(0.9, now + 0.05);             
-            masterGain.gain.setValueAtTime(0.8, now + 2.2);                      
-            masterGain.gain.linearRampToValueAtTime(0.001, now + totalDuration);  
-            masterGain.connect(lowpassFilter);
+    if (pitch !== -1 && target) {
+        let cents = 1200 * Math.log2(pitch / target.freq);
+        hintDisplay.style.visibility = 'visible';
+        hintDisplay.style.opacity = '1';
 
-            const oscillatorTypes = ['sawtooth', 'sine', 'triangle'];
-            const harmonicRatios = [1.0, 2.0, 3.0];
-            const harmonicVolumes = [0.5, 0.4, 0.1];
+        if (Math.abs(cents) < 60) {
+            hintDisplay.className = "hint-box pitch-match";
+            hintDisplay.innerText = currentNote ? "Perfect Match!" : `Captured Note ${currentRiffIndex + 1}!`;
+            consecutiveMatches++;
 
-            harmonicRatios.forEach((ratio, i) => {
-                const osc = audioCtx.createOscillator();
-                const componentGain = audioCtx.createGain();
-                
-                osc.type = oscillatorTypes[i];
-                osc.frequency.setValueAtTime(frequency * ratio, now);
-
-                componentGain.gain.setValueAtTime(harmonicVolumes[i], now);
-                componentGain.gain.linearRampToValueAtTime(0.001, now + totalDuration);
-
-                osc.connect(componentGain);
-                componentGain.connect(masterGain);
-                
-                osc.start(now);
-                osc.stop(now + totalDuration);
-                activeSynthesizers.push(osc);
-            });
-        }
-
-        function setupMicrophone() {
-            navigator.mediaDevices.getUserMedia({ 
-                audio: { echoCancellation: false, noiseSuppression: true, autoGainControl: false } 
-            }).then(stream => {
-                micStream = stream;
-                analyser = audioCtx.createAnalyser();
-                analyser.fftSize = 2048;
-                let source = audioCtx.createMediaStreamSource(micStream);
-                source.connect(analyser);
-            }).catch(err => {
-                console.log("Microphone offline.");
-            });
-        }
-
-        function setupSpeechRecognition() {
-            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-            if (!SpeechRecognition) return;
-
-            const recognition = new SpeechRecognition();
-            recognition.continuous = true;
-            recognition.interimResults = false;
-            recognition.lang = 'en-US';
-
-            // CRITICAL UPDATE: "Repeat" voice command resets detection state back to voice matching stage
-            recognition.onresult = (event) => {
-                const latestResultIndex = event.results.length - 1;
-                const command = event.results[latestResultIndex][0].transcript.trim().toLowerCase();
-
-                if (command.includes('next')) {
-                    nextExercise();
-                } else if (command.includes('repeat')) {
-                    if (currentNote) {
-                        triggerSequenceReset();
-                    }
-                }
-            };
-
-            recognition.onend = () => { try { recognition.start(); } catch(e){} };
-            recognition.start();
-        }
-
-        function listenPitch() {
-            if (!isChecking) return;
-            requestAnimationFrame(listenPitch);
-            
-            if (!analyser || currentStage === 'idle' || cooldownActive) return; 
-
-            analyser.getFloatTimeDomainData(sampleBuffer);
-
-            let rms = 0;
-            for (let i = 0; i < sampleBuffer.length; i++) {
-                rms += sampleBuffer[i] * sampleBuffer[i];
-            }
-            rms = Math.sqrt(rms / sampleBuffer.length);
-
-            let volumeThreshold = (currentStage === 'guitar') ? 0.08 : 0.02;
-
-            if (rms < volumeThreshold) {
-                if (hintsToggle.checked) {
-                    hintDisplay.innerText = currentStage === 'guitar' ? "Strike guitar string firmly..." : "Listening...";
-                    hintDisplay.className = "hint-box";
-                    hintDisplay.style.color = "#888";
-                }
-                consecutiveMatches = Math.max(0, consecutiveMatches - 2);
-                return;
-            }
-
-            let pitch = autoCorrelate(sampleBuffer, audioCtx.sampleRate);
-
-            if (pitch !== -1 && currentNote) {
-                let centsDifference = 1200 * Math.log2(pitch / currentNote.freq);
-                
-                if (hintsToggle.checked) {
-                    hintDisplay.style.display = 'block';
-                    
-                    if (Math.abs(centsDifference) < 65) {
-                        hintDisplay.className = "hint-box pitch-match";
-                        hintDisplay.innerText = "🎯 Pitch Matching!";
-                    } else if (centsDifference < 0) {
-                        hintDisplay.className = "hint-box pitch-low";
-                        hintDisplay.innerText = "🔼 Too Low! Sing/Play Higher";
-                    } else {
-                        hintDisplay.className = "hint-box pitch-high";
-                        hintDisplay.innerText = "🔽 Too High! Sing/Play Lower";
-                    }
-                }
-
-                if (Math.abs(centsDifference) < 65) { 
-                    consecutiveMatches++;
-                    
-                    if (consecutiveMatches >= REQUIRED_STREAK) {
-                        consecutiveMatches = 0; 
-                        resetHints();
-                        
-                        if (currentStage === 'singing') {
-                            currentStage = 'guitar';
-                            cooldownActive = true; 
-                            playSyntheticGuitarString(currentNote.freq); 
-                            statusDiv.innerHTML = `<span class="success">Voice Match!</span> Now play that same note on your guitar...`;
-                            setTimeout(() => { cooldownActive = false; }, 500); 
-                        } else if (currentStage === 'guitar') {
-                            currentStage = 'idle';
-                            stopAllAudio();
-                            statusDiv.innerHTML = `<span class="success">Perfect Match!</span> You nailed it on guitar. Say "Next" to continue.`;
-                            listenBtn.disabled = true;
-                        }
-                    }
+            if (consecutiveMatches >= 5) {
+                consecutiveMatches = 0;
+                if (currentNote) {
+                    currentStage = 'idle';
+                    statusDiv.innerHTML = `<span class="success">Perfect Match!</span> Click Next Note or say 'Next'.`;
                 } else {
-                    consecutiveMatches = Math.max(0, consecutiveMatches - 1);
+                    currentRiffIndex++;
+                    isAudioPlaying = true;
+                    setTimeout(() => { isAudioPlaying = false; }, 250);
+
+                    if (currentRiffIndex >= currentRiff.length) {
+                        currentStage = 'idle';
+                        statusDiv.innerHTML = `<span class="success">Riff Cleared Perfectly!</span>`;
+                    } else {
+                        statusDiv.innerHTML = `Track next note... (${currentRiffIndex + 1}/${currentRiff.length})`;
+                    }
                 }
-            } else {
-                consecutiveMatches = Math.max(0, consecutiveMatches - 2);
+            }
+        } else {
+            consecutiveMatches = 0;
+            hintDisplay.className = cents < 0 ? "hint-box pitch-low" : "hint-box pitch-high";
+            hintDisplay.innerText = cents < 0 ? "Pitch too low!" : "Pitch too high!";
+        }
+    }
+}
+
+function autoCorrelate(buffer, sampleRate) {
+    let SIZE = buffer.length, maxval = -1, maxpos = -1;
+    let c = new Float32Array(SIZE);
+    for (let i = 0; i < SIZE; i++) {
+        for (let j = 0; j < SIZE - i; j++) c[i] = c[i] + buffer[j] * buffer[j + i];
+    }
+    let d = 0; while (c[d] > c[d + 1]) d++;
+    for (let i = d; i < SIZE; i++) {
+        if (c[i] > maxval) { maxval = c[i]; maxpos = i; }
+    }
+    return maxpos !== -1 ? (sampleRate / maxpos) : -1;
+}
+
+function renderStandardNotation(notesArray) {
+    notationContainer.classList.add('visible');
+    const svgNS = "http://www.w3.org/2000/svg";
+    notationSvg.innerHTML = ''; 
+    
+    const calculatedWidth = Math.max(500, 100 + (notesArray.length * 45));
+    notationSvg.setAttribute('width', calculatedWidth);
+    notationSvg.setAttribute('viewBox', `0 0 ${calculatedWidth} 140`);
+
+    // Standard 5-line staff rendering (spaced 10px cleanly apart)
+    const staffLinesY = [45, 55, 65, 75, 85];
+    staffLinesY.forEach(y => {
+        let line = document.createElementNS(svgNS, "line");
+        line.setAttribute("x1", "10"); line.setAttribute("y1", y);
+        line.setAttribute("x2", calculatedWidth - 10); line.setAttribute("y2", y);
+        line.setAttribute("stroke", "#2c3e50"); line.setAttribute("stroke-width", "1.5");
+        notationSvg.appendChild(line);
+    });
+
+    // Custom precise vector path structure for authentic G-Clef alignment wrapping the G4 line (y=75)
+    let clefPath = document.createElementNS(svgNS, "path");
+    clefPath.setAttribute("d", "M 22 92 C 25 92, 28 88, 27 82 C 25 72, 12 75, 12 63 C 12 50, 27 40, 27 25 C 27 15, 22 10, 19 15 C 16 25, 21 48, 21 63 C 21 78, 14 85, 17 98 C 19 105, 14 112, 17 115 C 20 117, 24 112, 22 103 Z M 22 75 A 6 6 0 1 1 21.9 75 Z");
+    clefPath.setAttribute("fill", "#111");
+    clefPath.setAttribute("transform", "scale(1.2) translate(5, 5)");
+    notationSvg.appendChild(clefPath);
+
+    notesArray.forEach((note, index) => {
+        let xOffset = 80 + (index * 45);
+        let yOffset = note.staffY;
+
+        // Dynamic standard dynamic ledger line tracking loop maps values cleanly
+        if (yOffset >= 95) { // Ledger lines below the staff (E4 is at 85)
+            for (let ly = 95; ly <= yOffset; ly += 10) {
+                let lLine = document.createElementNS(svgNS, "line");
+                lLine.setAttribute("x1", xOffset - 10); lLine.setAttribute("y1", ly);
+                lLine.setAttribute("x2", xOffset + 14); lLine.setAttribute("y2", ly);
+                lLine.setAttribute("stroke", "#111"); lLine.setAttribute("stroke-width", "1.5");
+                notationSvg.appendChild(lLine);
+            }
+        } else if (yOffset <= 35) { // Ledger lines above the staff (F5 is at 45)
+            for (let ly = 35; ly >= yOffset; ly -= 10) {
+                let lLine = document.createElementNS(svgNS, "line");
+                lLine.setAttribute("x1", xOffset - 10); lLine.setAttribute("y1", ly);
+                lLine.setAttribute("x2", xOffset + 14); lLine.setAttribute("y2", ly);
+                lLine.setAttribute("stroke", "#111"); lLine.setAttribute("stroke-width", "1.5");
+                notationSvg.appendChild(lLine);
             }
         }
 
-        function autoCorrelate(buffer, sampleRate) {
-            let SIZE = buffer.length;
-            let r1 = 0, r2 = SIZE - 1, thres = 0.2;
-            for (let i = 0; i < SIZE / 2; i++) {
-                if (Math.abs(buffer[i]) < thres) { r1 = i; break; }
-            }
-            for (let i = SIZE - 1; i >= SIZE / 2; i--) {
-                if (Math.abs(buffer[i]) < thres) { r2 = i; break; }
-            }
-            buffer = buffer.slice(r1, r2);
-            SIZE = buffer.length;
+        let noteHead = document.createElementNS(svgNS, "ellipse");
+        noteHead.setAttribute("cx", xOffset); noteHead.setAttribute("cy", yOffset);
+        noteHead.setAttribute("rx", "6.5"); noteHead.setAttribute("ry", "4.5");
+        noteHead.setAttribute("transform", `rotate(-20, ${xOffset}, ${yOffset})`);
+        noteHead.setAttribute("fill", "#111");
+        notationSvg.appendChild(noteHead);
 
-            let c = new Float32Array(SIZE);
-            for (let i = 0; i < SIZE; i++) {
-                for (let j = 0; j < SIZE - i; j++) {
-                    c[i] = c[i] + buffer[j] * buffer[j + i];
-                }
-            }
+        let stem = document.createElementNS(svgNS, "line");
+        let stemUp = yOffset > 65;
+        stem.setAttribute("x1", stemUp ? xOffset + 6 : xOffset - 6);
+        stem.setAttribute("y1", yOffset);
+        stem.setAttribute("x2", stemUp ? xOffset + 6 : xOffset - 6);
+        stem.setAttribute("y2", stemUp ? yOffset - 28 : yOffset + 28);
+        stem.setAttribute("stroke", "#111"); stem.setAttribute("stroke-width", "2");
+        notationSvg.appendChild(stem);
 
-            let d = 0;
-            while (c[d] > c[d + 1]) d++;
-            let maxval = -1, maxpos = -1;
-            for (let i = d; i < SIZE; i++) {
-                if (c[i] > maxval) {
-                    maxval = c[i];
-                    maxpos = i;
-                }
-            }
-            let T0 = maxpos;
-            return sampleRate / T0;
-        }
+        let label = document.createElementNS(svgNS, "text");
+        label.setAttribute("x", xOffset - 5); label.setAttribute("y", "135");
+        label.setAttribute("font-family", "sans-serif"); label.setAttribute("font-size", "11");
+        label.setAttribute("font-weight", "bold"); label.setAttribute("fill", "#555");
+        label.textContent = note.name;
+        notationSvg.appendChild(label);
+    });
+}
 
-        function highlightFret(stringName, fretNum) {
-            const stringRow = document.querySelector(`[data-string="${stringName}"]`) || document.querySelector(`[data-string^="${stringName}"]`);
-            if(stringRow) {
-                const marker = stringRow.children[fretNum].querySelector('.note-marker');
-                if(marker) marker.style.display = 'block';
-            }
-        }
-
-        document.querySelectorAll('.range-fret').forEach(fretEl => {
-            fretEl.addEventListener('click', () => {
-                let fretNum = parseInt(fretEl.getAttribute('data-fret'));
-                handleRangeSelection(fretNum);
-            });
-        });
+function revealAnswer() {
+    if (currentNote) {
+        letterDisplay.innerText = currentNote.name;
+        letterDisplay.style.display = 'block';
+        fretboardWrapper.classList.add('visible');
         
-        buildActiveScale();
-        updateRangeUI();
-    </script>
+        let row = document.querySelector(`[data-string="${currentNote.string}"]`);
+        if(row) {
+            let marker = row.children[currentNote.fret].querySelector('.note-marker');
+            marker.style.display = 'flex';
+            marker.innerText = '•';
+        }
+        renderStandardNotation([currentNote]);
+    } else if (currentRiff.length > 0) {
+        renderStandardNotation(currentRiff);
+        tabDisplay.style.display = 'block';
+        fretboardWrapper.classList.remove('visible');
+        
+        const order = ['E1', 'B', 'G', 'D', 'A', 'E6'];
+        const stringLabels = { 'E1': 'e|', 'B': 'B|', 'G': 'G|', 'D': 'D|', 'A': 'A|', 'E6': 'E|' };
+        
+        let tabMatrix = { 'E1': '', 'B': '', 'G': '', 'D': '', 'A': '', 'E6': '' };
+        let rhythmType = currentRiff[0].rhythmType;
+        
+        let stepsPerBeat = 1;
+        if (rhythmType === 16) stepsPerBeat = 4;
+        else if (rhythmType === 12) stepsPerBeat = 3;
+        else if (rhythmType === 8) stepsPerBeat = 2;
+        
+        let totalBeats = totalBarsCalculated * 4;
+        let totalMatrixSlots = totalBeats * stepsPerBeat;
+        let beatTimelineLine = '   '; 
+
+        let charactersPerSlot = 3; 
+        let totalTextColumns = 3 + (totalMatrixSlots * charactersPerSlot);
+        
+        let calculatedFontSize = 14;
+        if (totalTextColumns > 45) calculatedFontSize = 11;
+        if (totalTextColumns > 65) calculatedFontSize = 9;
+        if (totalTextColumns > 85) calculatedFontSize = 8;
+        
+        tabDisplay.style.fontSize = `${calculatedFontSize}px`;
+
+        for (let b = 0; b < totalBeats; b++) {
+            for (let sub = 0; sub < stepsPerBeat; sub++) {
+                let matchedNotes = currentRiff.filter(n => n.beatIndex === b && n.subDivIndex === sub);
+                
+                if (sub === 0) {
+                    let beatIndicator = ((b % 4) + 1).toString();
+                    beatTimelineLine += beatIndicator + '  ';
+                } else {
+                    if (stepsPerBeat === 2) beatTimelineLine += '+  ';
+                    else if (stepsPerBeat === 4) beatTimelineLine += (sub === 2 ? '+  ' : '.  ');
+                    else if (stepsPerBeat === 3) beatTimelineLine += '.  ';
+                    else beatTimelineLine += '   ';
+                }
+
+                order.forEach(s => {
+                    let note = matchedNotes.find(n => n.string === s);
+                    if (note) {
+                        tabMatrix[s] += note.fret.toString();
+                    } else {
+                        tabMatrix[s] += '-';
+                    }
+                });
+
+                order.forEach(s => { tabMatrix[s] += '--'; });
+            }
+        }
+        
+        let completeTab = beatTimelineLine + '\n' + order.map(s => `${stringLabels[s]}-${tabMatrix[s]}`).join('\n');
+        tabDisplay.innerText = completeTab;
+    }
+}
+
+/* AUTOMATED PRE-FLIGHT DIAGNOSTIC HARNESS */
+function runPreFlightDiagnosticTests() {
+    console.log("%c=== RUNNING GUITAR EAR TRAINER RUNTIME TESTS ===", "color: #007aff; font-weight: bold;");
+    const beatCountElement = document.getElementById('beat-count');
+    if (beatCountElement) {
+        console.log("✅ Test 1 Passed: Input variable ID perfectly mapped to 'beat-count'.");
+    } else {
+        console.error("❌ Test 1 Failed: Architectural mapping divergence present for 'beat-count' target.");
+    }
+}
+setTimeout(runPreFlightDiagnosticTests, 1000);
+</script>
 </body>
 </html>
