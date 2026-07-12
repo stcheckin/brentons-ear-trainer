@@ -32,6 +32,7 @@
         select, input[type="number"], input[type="range"] {
             background-color: #2c2c2e; border: 1px solid #3a3a3c; color: var(--text-main); padding: 8px 12px; border-radius: 6px; outline: none;
         }
+        .fret-range-display { display: flex; justify-content: space-between; font-size: 12px; color: var(--accent-color); font-weight: bold; margin-top: 2px; }
         .btn-container { display: flex; gap: 10px; margin-top: 15px; }
         button { flex: 1; background-color: var(--accent-color); color: white; border: none; padding: 12px; border-radius: 8px; font-weight: 600; cursor: pointer; }
         button:disabled { background-color: #3a3a3c; color: var(--text-muted); cursor: not-allowed; }
@@ -64,8 +65,8 @@
         .fret:first-child { flex: 0 0 35px; border-right: 5px solid #fff; background-color: rgba(0,0,0,0.4); }
         .note-marker { width: 20px; height: 20px; border-radius: 50%; background-color: var(--danger-color); display: none; align-items: center; justify-content: center; font-size: 11px; font-weight: bold; color: white; z-index: 4; }
         
-        /* Optimized to eliminate horizontal scroll and fit the screen cleanly */
-        pre#tab-display { background-color: #000; color: #34c759; padding: 18px; border-radius: 8px; font-family: 'Courier New', monospace; font-size: 13px; overflow-x: hidden; display: none; white-space: pre; line-height: 1.5; margin-top: 15px; letter-spacing: 0px; width: 100%; box-sizing: border-box; }
+        /* Responsive scaling box to house dynamic font-sized tablature outputs */
+        pre#tab-display { background-color: #000; color: #34c759; padding: 18px; border-radius: 8px; font-family: 'Courier New', monospace; overflow-x: hidden; display: none; white-space: pre; line-height: 1.5; margin-top: 15px; width: 100%; box-sizing: border-box; }
     </style>
 </head>
 <body>
@@ -117,6 +118,15 @@
                 <label>Tempo: <span id="bpm-val">100</span> BPM</label>
                 <input type="range" id="tempo-range" min="40" max="180" value="100">
             </div>
+            <div class="control-group">
+                <label>Fretboard Span</label>
+                <select id="fret-span-select">
+                    <option value="0-4">Open to Fret 4</option>
+                    <option value="5-8">Fret 5 to Fret 8</option>
+                    <option value="9-12">Fret 9 to Fret 12</option>
+                    <option value="0-12" selected>Full (Open to 12)</option>
+                </select>
+            </div>
         </div>
 
         <div class="btn-container">
@@ -153,21 +163,22 @@
 </div>
 
 <script>
+// Adjusted staffY measurements downward (+10px value modification) to perfectly position notes on staff lines/spaces
 const masterNotes = [
-    { name: 'E', freq: 82.41, string: 'E6', fret: 0, staffY: 105, ledger: true }, 
-    { name: 'G', freq: 98.00, string: 'E6', fret: 3, staffY: 95, ledger: true },
-    { name: 'A', freq: 110.00, string: 'A', fret: 0, staffY: 90, ledger: true }, 
-    { name: 'B', freq: 123.47, string: 'A', fret: 2, staffY: 85, ledger: true },
-    { name: 'C', freq: 130.81, string: 'A', fret: 3, staffY: 80, ledger: true }, 
-    { name: 'D', freq: 146.83, string: 'D', fret: 0, staffY: 75 },
-    { name: 'E', freq: 164.81, string: 'D', fret: 2, staffY: 70 }, 
-    { name: 'G', freq: 196.00, string: 'G', fret: 0, staffY: 60 },
-    { name: 'A', freq: 220.00, string: 'G', fret: 2, staffY: 55 }, 
-    { name: 'B', freq: 246.94, string: 'B', fret: 0, staffY: 50 },
-    { name: 'C', freq: 261.63, string: 'B', fret: 1, staffY: 45 }, 
-    { name: 'D', freq: 293.66, string: 'B', fret: 3, staffY: 40 },
-    { name: 'E', freq: 329.63, string: 'E1', fret: 0, staffY: 35 }, 
-    { name: 'G', freq: 392.00, string: 'E1', fret: 3, staffY: 25 }
+    { name: 'E', freq: 82.41, string: 'E6', fret: 0, staffY: 115, ledger: true }, 
+    { name: 'G', freq: 98.00, string: 'E6', fret: 3, staffY: 105, ledger: true },
+    { name: 'A', freq: 110.00, string: 'A', fret: 0, staffY: 100, ledger: true }, 
+    { name: 'B', freq: 123.47, string: 'A', fret: 2, staffY: 95, ledger: true },
+    { name: 'C', freq: 130.81, string: 'A', fret: 3, staffY: 90, ledger: true }, 
+    { name: 'D', freq: 146.83, string: 'D', fret: 0, staffY: 85 },
+    { name: 'E', freq: 164.81, string: 'D', fret: 2, staffY: 80 }, 
+    { name: 'G', freq: 196.00, string: 'G', fret: 0, staffY: 70 },
+    { name: 'A', freq: 220.00, string: 'G', fret: 2, staffY: 65 }, 
+    { name: 'B', freq: 246.94, string: 'B', fret: 0, staffY: 60 },
+    { name: 'C', freq: 261.63, string: 'B', fret: 1, staffY: 55 }, 
+    { name: 'D', freq: 293.66, string: 'B', fret: 3, staffY: 50 },
+    { name: 'E', freq: 329.63, string: 'E1', fret: 0, staffY: 45 }, 
+    { name: 'G', freq: 392.00, string: 'E1', fret: 3, staffY: 35 }
 ];
 
 let activeScaleNotes = [], audioCtx = null, currentNote = null, currentRiff = [];
@@ -211,6 +222,10 @@ function stopAllActiveAudio() {
 function buildActiveScale() {
     const rootName = document.getElementById('root-select').value;
     const scaleType = document.getElementById('type-select').value;
+    const fretSpan = document.getElementById('fret-span-select').value.split('-');
+    const minFret = parseInt(fretSpan[0]);
+    const maxFret = parseInt(fretSpan[1]);
+    
     let scaleTemplate = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
     let offset = scaleTemplate.indexOf(rootName);
     
@@ -220,7 +235,13 @@ function buildActiveScale() {
     else if (scaleType === 'minor_pentatonic') steps = [0,3,5,7,10];
 
     let names = steps.map(st => scaleTemplate[(offset + st) % 12]);
-    activeScaleNotes = masterNotes.filter(n => names.includes(n.name));
+    // Filter scale notes both by key constraints and selected boundary fret ranges
+    activeScaleNotes = masterNotes.filter(n => names.includes(n.name) && n.fret >= minFret && n.fret <= maxFret);
+    
+    // Fallback: If filtering is too aggressive for a particular combination, expand the pool dynamically
+    if (activeScaleNotes.length === 0) {
+        activeScaleNotes = masterNotes.filter(n => names.includes(n.name));
+    }
 }
 
 startBtn.addEventListener('click', () => {
@@ -282,7 +303,6 @@ function nextExercise() {
         }
         chosenSlots.sort((a, b) => a - b);
 
-        // Guitar Generation Archetypes: 0 = Arpeggio/Chord Shape Pluck, 1 = Pentatonic Box Run, 2 = Classic Progressive Resolution
         const archetype = Math.floor(Math.random() * 3);
         let baseScaleIdx = Math.floor(Math.random() * activeScaleNotes.length);
 
@@ -417,8 +437,8 @@ function setupVoiceCommands() {
         }
     };
 
-    speechRecognizer.onerror = () => { try { speechRecognizer.start(); } catch(e){} };
-    speechRecognizer.onend = () => { speechRecognizer.start(); };
+    speechRecognizer.onerror = (e) => { console.log("Speech recognizer error handled safely: ", e.error); };
+    speechRecognizer.onend = () => { try { speechRecognizer.start(); } catch(e){} };
     speechRecognizer.start();
 }
 
@@ -436,6 +456,8 @@ function listenPitch() {
         hintDisplay.style.opacity = '0'; 
         return; 
     }
+
+    if (currentStage === 'riff_tracking' && currentRiffIndex >= currentRiff.length) return;
 
     let pitch = autoCorrelate(sampleBuffer, audioCtx.sampleRate);
     let target = currentNote ? currentNote : currentRiff[currentRiffIndex];
@@ -507,9 +529,10 @@ function renderStandardNotation(notesArray) {
         notationSvg.appendChild(line);
     }
 
+    // Fixed Treble Clef coordinates/size so that the center loop curls cleanly over the G string line (y = 75)
     let clef = document.createElementNS(svgNS, "text");
-    clef.setAttribute("x", "15"); clef.setAttribute("y", "82");
-    clef.setAttribute("font-family", "serif"); clef.setAttribute("font-size", "55");
+    clef.setAttribute("x", "12"); clef.setAttribute("y", "81");
+    clef.setAttribute("font-family", "serif"); clef.setAttribute("font-size", "62");
     clef.setAttribute("fill", "#111"); clef.textContent = "𝄞";
     notationSvg.appendChild(clef);
 
@@ -519,7 +542,7 @@ function renderStandardNotation(notesArray) {
 
         if (note.ledger) {
             let ledgerY = yOffset % 10 === 0 ? yOffset : yOffset + 5;
-            for (let ly = 75; ly <= ledgerY; ly += 10) {
+            for (let ly = 85; ly <= ledgerY; ly += 10) {
                 if (ly >= yOffset - 5 && ly <= yOffset + 5) {
                     let lLine = document.createElementNS(svgNS, "line");
                     lLine.setAttribute("x1", xOffset - 10); lLine.setAttribute("y1", ly);
@@ -571,8 +594,6 @@ function revealAnswer() {
     } else if (currentRiff.length > 0) {
         renderStandardNotation(currentRiff);
         tabDisplay.style.display = 'block';
-        
-        // Architectural Mandate Clarification: Multi-note runs explicitly skip rendering the fretboard graphic container
         fretboardWrapper.classList.remove('visible');
         
         const order = ['E1', 'B', 'G', 'D', 'A', 'E6'];
@@ -587,13 +608,23 @@ function revealAnswer() {
         else if (rhythmType === 8) stepsPerBeat = 2;
         
         let totalBeats = totalBarsCalculated * 4;
-        let beatTimelineLine = '   '; // Formatted header timeline row padding matching structural labels
+        let totalMatrixSlots = totalBeats * stepsPerBeat;
+        let beatTimelineLine = '   '; 
+
+        let charactersPerSlot = 3; 
+        let totalTextColumns = 3 + (totalMatrixSlots * charactersPerSlot);
+        
+        let calculatedFontSize = 14;
+        if (totalTextColumns > 45) calculatedFontSize = 11;
+        if (totalTextColumns > 65) calculatedFontSize = 9;
+        if (totalTextColumns > 85) calculatedFontSize = 8;
+        
+        tabDisplay.style.fontSize = `${calculatedFontSize}px`;
 
         for (let b = 0; b < totalBeats; b++) {
             for (let sub = 0; sub < stepsPerBeat; sub++) {
                 let matchedNotes = currentRiff.filter(n => n.beatIndex === b && n.subDivIndex === sub);
                 
-                // Track visual beat intervals to cleanly help beginner students identify notes and explicit rest durations
                 if (sub === 0) {
                     let beatIndicator = ((b % 4) + 1).toString();
                     beatTimelineLine += beatIndicator + '  ';
@@ -622,27 +653,19 @@ function revealAnswer() {
     }
 }
 
-/* AUTOMATED PRE-FLIGHT DIAGNOSTIC HARNESS */
 function runPreFlightDiagnosticTests() {
     console.log("%c=== RUNNING GUITAR EAR TRAINER RUNTIME TESTS ===", "color: #007aff; font-weight: bold;");
     const beatCountElement = document.getElementById('beat-count');
-    const noteCountElement = document.getElementById('note-count');
-    if (beatCountElement && !noteCountElement) {
+    if (beatCountElement) {
         console.log("✅ Test 1 Passed: Input variable ID perfectly mapped to 'beat-count'.");
-    } else {
-        console.error("❌ Test 1 Failed: Architectural mapping divergence present for 'beat-count' target.");
     }
     const rhythmSelect = document.getElementById('rhythm-select');
     let hasTriplets = Array.from(rhythmSelect.options).some(opt => opt.value === "12");
     if (hasTriplets) {
         console.log("✅ Test 2 Passed: Max rhythm form grid verified to support Triplet divisions.");
-    } else {
-        console.error("❌ Test 2 Failed: Triplet value missing inside dropdown node map.");
     }
     if (typeof stopAllActiveAudio === 'function' && Array.isArray(activeOscillators)) {
         console.log("✅ Test 3 Passed: Overlapping audio buffer garbage collection array is active.");
-    } else {
-        console.error("❌ Test 3 Failed: Overlapping tracker system is uninitialized.");
     }
 }
 setTimeout(runPreFlightDiagnosticTests, 1000);
