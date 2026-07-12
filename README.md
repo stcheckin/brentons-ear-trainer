@@ -7,8 +7,8 @@ An adaptive, web-based ear training application designed specifically for guitar
 ## 🚀 Key Features & Architectural Enhancements
 
 ### 1. Dynamic Rhythmic Engine
-* **Flexible Beats Configuration:** The "Total Notes to Play" control dictates the exact number of notes mapped out dynamically inside a $4/4$ time structure spanning up to 4 bars (16 quarter beats maximum).
-* **Grid Subdivision Spacing:** Rather than compressing notes back-to-back, the app randomly and authentically spaces notes across subdivisions (Quarter notes, 8th notes, or 16th notes) based on the **Max Rhythm Form** chosen.
+* **Flexible Beats Configuration:** The "Total Notes to Play" control references the explicit `#beat-count` parameters mapping out dynamically inside a $4/4$ time structure spanning up to 4 bars (16 quarter beats maximum).
+* **Grid Subdivision Spacing:** Rather than compressing notes back-to-back, the app randomly and authentically spaces notes across subdivisions (Quarter notes, 8th notes, Triplet divisions, or 16th notes) based on the **Max Rhythm Form** chosen.
 
 ### 2. Melodic & Guitar-Friendly Riff Logic
 * **Musically Intelligible Phrases:** Instead of entirely chaotic, unplayable random intervals, the generator utilizes bounded scales (Major, Minor, Major Pentatonic, Minor Pentatonic) and restricts subsequent movements to musical step-wise motions, scale-wise thirds, or perfect fourths and fifths. 
@@ -38,5 +38,9 @@ An adaptive, web-based ear training application designed specifically for guitar
 3. **Train:** Click **Start Session**. 
    * Listen closely to the generated note or riff phrase.
    * Play or sing the sequence back note-by-note into your device microphone.
-   * Alternatively, use integrated hands-free voice commands: **"Next"** to advance or **"Repeat"** to replay the audio.
+   * Alternatively, use integrated hands-free voice commands:
+     * **"Next"**: Advance to the next exercise target.
+     * **"Repeat"**: Replay the current active phrase generation.
+     * **"Faster"**: Automatically increases tempo metrics by $+20$ BPM.
+     * **"Slower"**: Automatically decreases tempo metrics by $-20$ BPM.
 4. **Reveal:** Click **Reveal Answer** to see the interactive standard notation layout, horizontal chronological fretboard pathing numbers, and real-time spaced text tabs simultaneously.

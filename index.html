@@ -101,13 +101,14 @@
             </div>
             <div class="control-group">
                 <label>Total Notes to Play</label>
-                <input type="number" id="note-count" min="1" max="16" value="4">
+                <input type="number" id="beat-count" min="1" max="16" value="4">
             </div>
             <div class="control-group">
                 <label>Max Rhythm Form</label>
                 <select id="rhythm-select">
                     <option value="4">Quarter Notes</option>
                     <option value="8">8th Notes</option>
+                    <option value="12">Triplet Notes</option>
                     <option value="16">16th Notes</option>
                 </select>
             </div>
@@ -173,6 +174,7 @@ let currentRiffIndex = 0, currentStage = 'idle', analyser = null, micStream = nu
 let sampleBuffer = new Float32Array(2048), consecutiveMatches = 0;
 let isAudioPlaying = false, hasStarted = false, speechRecognizer = null; 
 let totalBarsCalculated = 1;
+let activeOscillators = [];
 
 const startBtn = document.getElementById('start-btn'), listenBtn = document.getElementById('listen-btn'), revealBtn = document.getElementById('reveal-btn');
 const statusDiv = document.getElementById('status'), hintDisplay = document.getElementById('hint-display'), letterDisplay = document.getElementById('letter-display');
@@ -190,8 +192,19 @@ document.querySelectorAll('.fretboard .string').forEach(str => {
 tempoRange.addEventListener('input', () => { updateBPMDisplay(parseInt(tempoRange.value)); });
 
 function updateBPMDisplay(newBpm) {
-    tempoRange.value = newBpm;
-    document.getElementById('bpm-val').innerText = newBpm;
+    let boundBpm = Math.max(40, Math.min(180, newBpm));
+    tempoRange.value = boundBpm;
+    document.getElementById('bpm-val').innerText = boundBpm;
+}
+
+function stopAllActiveAudio() {
+    activeOscillators.forEach(osc => {
+        try {
+            osc.stop();
+            osc.disconnect();
+        } catch(e) {}
+    });
+    activeOscillators = [];
 }
 
 function buildActiveScale() {
@@ -220,21 +233,21 @@ startBtn.addEventListener('click', () => {
     nextExercise();
 });
 
-listenBtn.addEventListener('click', () => { if(!isAudioPlaying) playCurrentAudio(); });
+listenBtn.addEventListener('click', () => { if(!isAudioPlaying || true) playCurrentAudio(); });
 revealBtn.addEventListener('click', revealAnswer);
 
 function nextExercise() {
+    stopAllActiveAudio();
     isAudioPlaying = true;
     consecutiveMatches = 0;
     letterDisplay.style.display = 'none';
     
-    // Hide panels cleanly via transitions rather than jarring displays
     fretboardWrapper.classList.remove('visible');
     notationContainer.classList.remove('visible');
     tabDisplay.style.display = 'none';
     document.querySelectorAll('.note-marker').forEach(m => { m.style.display = 'none'; m.innerText = ''; });
 
-    const totalNotesRequested = parseInt(document.getElementById('note-count').value);
+    const totalNotesRequested = parseInt(document.getElementById('beat-count').value);
     const maxRhythm = parseInt(document.getElementById('rhythm-select').value);
     
     if (totalNotesRequested === 1) {
@@ -256,6 +269,7 @@ function nextExercise() {
         
         let subdivisionsPerBeat = 1;
         if (maxRhythm === 8) subdivisionsPerBeat = 2;
+        if (maxRhythm === 12) subdivisionsPerBeat = 3;
         if (maxRhythm === 16) subdivisionsPerBeat = 4;
         
         const totalAvailableSlots = totalQuarterBeats * subdivisionsPerBeat;
@@ -296,6 +310,7 @@ function nextExercise() {
 }
 
 function playCurrentAudio() {
+    stopAllActiveAudio();
     isAudioPlaying = true;
     consecutiveMatches = 0; 
     const bpm = parseInt(tempoRange.value);
@@ -307,7 +322,10 @@ function playCurrentAudio() {
         setTimeout(() => { isAudioPlaying = false; }, beatDuration * 1000 + 100);
     } else if (currentRiff.length > 0) {
         let totalPlayTime = 0;
-        let subdivisionsPerBeat = currentRiff[0].rhythmType === 16 ? 4 : (currentRiff[0].rhythmType === 8 ? 2 : 1);
+        let subdivisionsPerBeat = 1;
+        if (currentRiff[0].rhythmType === 16) subdivisionsPerBeat = 4;
+        else if (currentRiff[0].rhythmType === 12) subdivisionsPerBeat = 3;
+        else if (currentRiff[0].rhythmType === 8) subdivisionsPerBeat = 2;
         
         currentRiff.forEach((note) => {
             let noteDuration = beatDuration / subdivisionsPerBeat;
@@ -334,6 +352,9 @@ function playSynthTone(freq, start, duration) {
 
     osc.connect(gain);
     gain.connect(audioCtx.destination);
+    
+    activeOscillators.push(osc);
+    
     osc.start(start);
     osc.stop(start + duration);
 }
@@ -360,8 +381,17 @@ function setupVoiceCommands() {
 
     speechRecognizer.onresult = (event) => {
         let text = event.results[event.results.length - 1][0].transcript.trim().toLowerCase().replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g,"");
-        if (text.includes('next')) nextExercise();
-        else if (text.includes('repeat') && !isAudioPlaying) playCurrentAudio();
+        if (text.includes('next')) {
+            nextExercise();
+        } else if (text.includes('repeat')) {
+            playCurrentAudio();
+        } else if (text.includes('faster')) {
+            let newBpm = parseInt(tempoRange.value) + 20;
+            updateBPMDisplay(newBpm);
+        } else if (text.includes('slower')) {
+            let newBpm = parseInt(tempoRange.value) - 20;
+            updateBPMDisplay(newBpm);
+        }
     };
 
     speechRecognizer.onerror = () => { try { speechRecognizer.start(); } catch(e){} };
@@ -534,10 +564,14 @@ function revealAnswer() {
         
         let tabMatrix = { 'E1': '', 'B': '', 'G': '', 'D': '', 'A': '', 'E6': '' };
         let rhythmType = currentRiff[0].rhythmType;
-        let stepsPerBeat = rhythmType === 16 ? 4 : (rhythmType === 8 ? 2 : 1);
+        
+        let stepsPerBeat = 1;
+        if (rhythmType === 16) stepsPerBeat = 4;
+        else if (rhythmType === 12) stepsPerBeat = 3;
+        else if (rhythmType === 8) stepsPerBeat = 2;
+        
         let totalBeats = totalBarsCalculated * 4;
 
-        // Render continuously spaced tabs out clean without confusing bar division boundaries
         for (let b = 0; b < totalBeats; b++) {
             for (let sub = 0; sub < stepsPerBeat; sub++) {
                 let matchedNotes = currentRiff.filter(n => n.beatIndex === b && n.subDivIndex === sub);
@@ -551,7 +585,6 @@ function revealAnswer() {
                     }
                 });
 
-                // Soft double spaces to organically read phrases properly
                 order.forEach(s => { tabMatrix[s] += '--'; });
             }
         }
@@ -560,6 +593,37 @@ function revealAnswer() {
         tabDisplay.innerText = completeTab;
     }
 }
+
+/* AUTOMATED PRE-FLIGHT DIAGNOSTIC HARNESS */
+function runPreFlightDiagnosticTests() {
+    console.log("%c=== RUNNING GUITAR EAR TRAINER RUNTIME TESTS ===", "color: #007aff; font-weight: bold;");
+    
+    // Test 1: DOM ID Consistency Assertions
+    const beatCountElement = document.getElementById('beat-count');
+    const noteCountElement = document.getElementById('note-count');
+    if (beatCountElement && !noteCountElement) {
+        console.log("✅ Test 1 Passed: Input variable ID perfectly mapped to 'beat-count'.");
+    } else {
+        console.error("❌ Test 1 Failed: Architectural mapping divergence present for 'beat-count' target.");
+    }
+
+    // Test 2: Verify Triplet Selection Availability
+    const rhythmSelect = document.getElementById('rhythm-select');
+    let hasTriplets = Array.from(rhythmSelect.options).some(opt => opt.value === "12");
+    if (hasTriplets) {
+        console.log("✅ Test 2 Passed: Max rhythm form grid verified to support Triplet divisions.");
+    } else {
+        console.error("❌ Test 2 Failed: Triplet value missing inside dropdown node map.");
+    }
+
+    // Test 3: Audio Disconnect Tracking Framework Verify
+    if (Array.isArray(activeOscillators)) {
+        console.log("✅ Test 3 Passed: Overlapping audio buffer garbage collection array is active.");
+    } else {
+        console.error("❌ Test 3 Failed: Overlapping tracker system is uninitialized.");
+    }
+}
+setTimeout(runPreFlightDiagnosticTests, 1000);
 </script>
 </body>
 </html>
