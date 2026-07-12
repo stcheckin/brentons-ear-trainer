@@ -10,15 +10,11 @@ An adaptive, web-based ear training application designed specifically for guitar
 * **Flexible Beats Configuration:** The "Total Notes to Play" control references the explicit `#beat-count` parameters mapping out dynamically inside a 4/4 time structure spanning up to 4 bars (16 quarter beats maximum).
 * **Grid Subdivision Spacing:** Rather than compressing notes back-to-back, the app randomly and authentically spaces notes across subdivisions (Quarter notes, 8th notes, Triplet divisions, or 16th notes) based on the **Max Rhythm Form** chosen.
 
-### 2. Melodic & Guitar-Friendly Riff Logic
-* **Musically Intelligible Phrases:** Instead of entirely chaotic, unplayable random intervals, the generator utilizes bounded scales (Major, Minor, Major Pentatonic, Minor Pentatonic) and restricts subsequent movements to musical step-wise motions, scale-wise thirds, or perfect fourths and fifths.
-* **Guitar Archetype Phrasing:** Riffs are calculated using realistic play models, alternating between root chord arpeggiations, linear pentatonic box shape paths, and natural progressive resolutions to mimic physical guitar solos.
-* **Fretboard Target Span Filtering:** Exercises can be isolated cleanly to designated horizontal sections on the neck (`#fret-span-select`). Choosing options like "Open to Fret 4" filters generated scale targets exclusively inside that visual bracket.
+### 2. Melodic & Bounded Focus Selection Logic
+* **Musically Intelligible Phrases:** Bounded scales (Major, Minor, Major Pentatonic, Minor Pentatonic) determine melodic note structures, matching authentic intervals over step-wise sequences.
+* **Fret Range Selection Isolation:** A compact selector strip from Open to Fret 12 sits cleanly inside the exercise setup panel. Min and max limits allow users to restrict exercises to narrow sectors, establishing absolute note location familiarity before expanding to broader zones.
 
-### 3. Layout Stability (No-Bounce UI)
-* **Pre-allocated Container States:** The tracking UI employs structural CSS visibility hidden rules and explicit element heights (`.status-area` and `.notation-container`). Elements like the standard notation SVG frame do not cause page elements to violently shift or "bounce" when pitch markers appear or fade out.
-
-### 4. Advanced Visual Realism
-* **Precision Notation Placement:** The Treble Clef graphic loops elegantly around the second horizontal line from the bottom (the G line), and the note layout positions have been fine-tuned down to correctly represent pitch coordinates without causing false offset step anomalies.
-* **Continuous Tablature Design:** Removed traditional vertical measure line dividers (`|`) that often segment short computer phrases awkwardly. Tabs now flow with continuous double-hyphen buffers (`--`) simulating real guitar transcription documents.
-* **Proportional Tablature Scaling:** Dynamically scales font sizes depending on the absolute note count selected. This ensures wide runs compress evenly to fit the screen without clipping edge characters.
+### 3. Layout Stability & Precision Rendering
+* **Pre-allocated Container States:** Elements like standard notation panels preserve zero-bounce layout constraints through explicit height boundaries and visibility transformations.
+* **Accurate Treble Clef Balancing Vector:** The graphic rendering loops center directly across standard lines, matching standard formatting conventions, while procedural note placement accurately pairs accidental elements ($♯$) and custom multi-ledger parameters directly to the executed frequency array.
+* **Pixel-Perfect Tablature Alignment Grid:** Fixed structural widths inside the generator buffer force sub-beat indicators (`1`, `e`, `+`, `a`) to align strictly overhead of note columns, eradicating alignment drift for multi-digit frets.
