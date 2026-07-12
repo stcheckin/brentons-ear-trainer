@@ -36,7 +36,7 @@
         button { flex: 1; background-color: var(--accent-color); color: white; border: none; padding: 12px; border-radius: 8px; font-weight: 600; cursor: pointer; }
         button:disabled { background-color: #3a3a3c; color: var(--text-muted); cursor: not-allowed; }
         
-        /* Layout placeholders to reserve space and completely eliminate UI shifting */
+        /* Fixed height status display area to prevent page element jumping */
         .status-area { height: 75px; display: flex; flex-direction: column; justify-content: center; align-items: center; margin: 10px 0; }
         #status { font-size: 18px; font-weight: 500; text-align: center; }
         .stage-active { color: var(--warning-color); }
@@ -49,6 +49,7 @@
         
         #letter-display { font-size: 72px; font-weight: 800; text-align: center; margin: 20px 0; display: none; }
         
+        /* Layout placeholders to reserve space and completely eliminate UI shifting */
         .notation-container { display: block; visibility: hidden; height: 0; overflow: hidden; background: white; border-radius: 8px; padding: 0; margin-top: 0; transition: all 0.2s ease; }
         .notation-container.visible { visibility: visible; height: 150px; padding: 15px; margin-top: 15px; display: flex; justify-content: center; overflow-x: auto; }
         
@@ -63,7 +64,8 @@
         .fret:first-child { flex: 0 0 35px; border-right: 5px solid #fff; background-color: rgba(0,0,0,0.4); }
         .note-marker { width: 20px; height: 20px; border-radius: 50%; background-color: var(--danger-color); display: none; align-items: center; justify-content: center; font-size: 11px; font-weight: bold; color: white; z-index: 4; }
         
-        pre#tab-display { background-color: #000; color: #34c759; padding: 18px; border-radius: 8px; font-family: 'Courier New', monospace; font-size: 16px; overflow-x: auto; display: none; white-space: pre; line-height: 1.4; margin-top: 15px; letter-spacing: 2px; }
+        /* Optimized to eliminate horizontal scroll and fit the screen cleanly */
+        pre#tab-display { background-color: #000; color: #34c759; padding: 18px; border-radius: 8px; font-family: 'Courier New', monospace; font-size: 13px; overflow-x: hidden; display: none; white-space: pre; line-height: 1.5; margin-top: 15px; letter-spacing: 0px; width: 100%; box-sizing: border-box; }
     </style>
 </head>
 <body>
@@ -280,7 +282,7 @@ function nextExercise() {
         }
         chosenSlots.sort((a, b) => a - b);
 
-        // Guitar Generation Archetypes: 0 = Arpeggio / Chord Shape Pluck, 1 = Pentatonic Box Sequence, 2 = Classic Melodic Resolution
+        // Guitar Generation Archetypes: 0 = Arpeggio/Chord Shape Pluck, 1 = Pentatonic Box Run, 2 = Classic Progressive Resolution
         const archetype = Math.floor(Math.random() * 3);
         let baseScaleIdx = Math.floor(Math.random() * activeScaleNotes.length);
 
@@ -291,17 +293,14 @@ function nextExercise() {
             let currentScaleIdx = baseScaleIdx;
 
             if (archetype === 0) {
-                // Chord Shape Arpeggiator: Tracks across intervals of typical guitar triads (Root, 3rd, 5th, Octave)
                 let chordIntervals = [0, 2, 4, 6];
                 let intervalOffset = chordIntervals[i % chordIntervals.length];
                 currentScaleIdx = (baseScaleIdx + intervalOffset) % activeScaleNotes.length;
             } else if (archetype === 1) {
-                // Pentatonic Box Sequence: Moves step-wise and skips naturally through adjacent guitar finger strings
                 let pentatonicPattern = [0, 1, 2, 1, 3, 2, 4, 3];
                 let patternOffset = pentatonicPattern[i % pentatonicPattern.length];
                 currentScaleIdx = (baseScaleIdx + patternOffset) % activeScaleNotes.length;
             } else {
-                // Natural Progression/Resolution: Follows classic call-and-response melodic structures
                 let melodicSteps = [0, 2, 3, 1, 4, 2, 0];
                 let progressionOffset = melodicSteps[i % melodicSteps.length];
                 currentScaleIdx = (baseScaleIdx + progressionOffset) % activeScaleNotes.length;
@@ -356,20 +355,18 @@ function playCurrentAudio() {
 
 function playSynthTone(freq, start, duration) {
     const osc = audioCtx.createOscillator();
-    const subOsc = audioCtx.createOscillator(); // Sub-harmonics to give a full, physical wood body resonance
+    const subOsc = audioCtx.createOscillator(); 
     const gain = audioCtx.createGain();
     
-    // Triangle wave provides basic string body, combined with a subtle pure sine wave tone profile
     osc.type = 'triangle';
     osc.frequency.setValueAtTime(freq, start);
     
     subOsc.type = 'sine';
-    subOsc.frequency.setValueAtTime(freq * 2, start); // Add secondary string overtone
+    subOsc.frequency.setValueAtTime(freq * 2, start); 
 
-    // Authentic Guitar Envelope: Instant string pluck transients with long string decay
     gain.gain.setValueAtTime(0, start);
-    gain.gain.linearRampToValueAtTime(0.4, start + 0.004); // Fast pick snap
-    gain.gain.exponentialRampToValueAtTime(0.12, start + 0.08); // Decays gracefully into structural vibration
+    gain.gain.linearRampToValueAtTime(0.4, start + 0.004); 
+    gain.gain.exponentialRampToValueAtTime(0.12, start + 0.08); 
     gain.gain.linearRampToValueAtTime(0.001, start + duration);
 
     osc.connect(gain);
@@ -574,17 +571,10 @@ function revealAnswer() {
     } else if (currentRiff.length > 0) {
         renderStandardNotation(currentRiff);
         tabDisplay.style.display = 'block';
-        fretboardWrapper.classList.add('visible');
         
-        currentRiff.forEach((note, index) => {
-            let row = document.querySelector(`[data-string="${note.string}"]`);
-            if (row && row.children[note.fret]) {
-                let marker = row.children[note.fret].querySelector('.note-marker');
-                marker.style.display = 'flex';
-                marker.innerText = marker.innerText ? marker.innerText + ',' + (index + 1) : (index + 1);
-            }
-        });
-
+        // Architectural Mandate Clarification: Multi-note runs explicitly skip rendering the fretboard graphic container
+        fretboardWrapper.classList.remove('visible');
+        
         const order = ['E1', 'B', 'G', 'D', 'A', 'E6'];
         const stringLabels = { 'E1': 'e|', 'B': 'B|', 'G': 'G|', 'D': 'D|', 'A': 'A|', 'E6': 'E|' };
         
@@ -597,11 +587,23 @@ function revealAnswer() {
         else if (rhythmType === 8) stepsPerBeat = 2;
         
         let totalBeats = totalBarsCalculated * 4;
+        let beatTimelineLine = '   '; // Formatted header timeline row padding matching structural labels
 
         for (let b = 0; b < totalBeats; b++) {
             for (let sub = 0; sub < stepsPerBeat; sub++) {
                 let matchedNotes = currentRiff.filter(n => n.beatIndex === b && n.subDivIndex === sub);
                 
+                // Track visual beat intervals to cleanly help beginner students identify notes and explicit rest durations
+                if (sub === 0) {
+                    let beatIndicator = ((b % 4) + 1).toString();
+                    beatTimelineLine += beatIndicator + '  ';
+                } else {
+                    if (stepsPerBeat === 2) beatTimelineLine += '+  ';
+                    else if (stepsPerBeat === 4) beatTimelineLine += (sub === 2 ? '+  ' : '.  ');
+                    else if (stepsPerBeat === 3) beatTimelineLine += '.  ';
+                    else beatTimelineLine += '   ';
+                }
+
                 order.forEach(s => {
                     let note = matchedNotes.find(n => n.string === s);
                     if (note) {
@@ -615,7 +617,7 @@ function revealAnswer() {
             }
         }
         
-        let completeTab = order.map(s => `${stringLabels[s]}-${tabMatrix[s]}`).join('\n');
+        let completeTab = beatTimelineLine + '\n' + order.map(s => `${stringLabels[s]}-${tabMatrix[s]}`).join('\n');
         tabDisplay.innerText = completeTab;
     }
 }
