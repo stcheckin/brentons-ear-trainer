@@ -1,61 +1,24 @@
-Brenton's Ear Trainer
-A web-based, hands-free ear training application designed for guitarists to practice identifying and matching musical intervals and scale notes.
+# Brenton's Guitar Ear Trainer
 
-Features
-Scale & Root Selection: Choose your root note and scale type (Major or Natural Minor) to customize your practice session.
+An adaptive, web-based ear training application designed specifically for guitarists. The application generates highly melodic, context-aware riffs based on selected guitar scales, allows real-time interactive pitch tracking via microphone input, and displays musical solutions in both standard notation and cleanly spaced guitar tablature.
 
-Fretboard Windowing: Interactively select specific fret ranges (e.g., frets 0-5) to focus on specific positions on the neck.
+---
 
-Pitch-Matching Engine: Uses the Web Audio API to analyze your microphone input and compare your vocal pitch against the target note.
+## 🚀 Key Features & Architectural Enhancements
 
-Hands-Free Controls: Use voice commands like "Next" to advance to the next note or "Repeat" to hear the target note again.
+### 1. Dynamic Rhythmic Engine
+* **Flexible Beats Configuration:** The "Total Notes to Play" control references the explicit `#beat-count` parameters mapping out dynamically inside a 4/4 time structure spanning up to 4 bars (16 quarter beats maximum).
+* **Grid Subdivision Spacing:** Rather than compressing notes back-to-back, the app randomly and authentically spaces notes across subdivisions (Quarter notes, 8th notes, Triplet divisions, or 16th notes) based on the **Max Rhythm Form** chosen.
 
-Visual Feedback: Real-time pitch correction hints (Too Low/Too High/Target Match) and a fretboard visualizer to show where the note is located.
+### 2. Melodic & Guitar-Friendly Riff Logic
+* **Musically Intelligible Phrases:** Instead of entirely chaotic, unplayable random intervals, the generator utilizes bounded scales (Major, Minor, Major Pentatonic, Minor Pentatonic) and restricts subsequent movements to musical step-wise motions, scale-wise thirds, or perfect fourths and fifths.
+* **Guitar Archetype Phrasing:** Riffs are calculated using realistic play models, alternating between root chord arpeggiations, linear pentatonic box shape paths, and natural progressive resolutions to mimic physical guitar solos.
+* **Fretboard Target Span Filtering:** Exercises can be isolated cleanly to designated horizontal sections on the neck (`#fret-span-select`). Choosing options like "Open to Fret 4" filters generated scale targets exclusively inside that visual bracket.
 
-Feedback Blackout Window: Includes a 1.5-second "cooldown" window after note playback to prevent the microphone from detecting its own audio output.
+### 3. Layout Stability (No-Bounce UI)
+* **Pre-allocated Container States:** The tracking UI employs structural CSS visibility hidden rules and explicit element heights (`.status-area` and `.notation-container`). Elements like the standard notation SVG frame do not cause page elements to violently shift or "bounce" when pitch markers appear or fade out.
 
-How to Use
-Select Scale/Range: Choose your preferred root note and scale from the dropdowns at the top. Click the fretboard area to define your "window" of focus.
-
-Start Session: Click "Start Session" to begin. You will be prompted by the browser to allow microphone access.
-
-Voice Matching:
-
-The app will play the target note.
-
-Sing the note to match the pitch.
-
-Once a successful match is detected, you will be prompted to play the same note on your guitar.
-
-Commands: Use your voice to say "Next" or "Repeat" to control the session without putting down your instrument.
-
-Development & Setup
-Prerequisites
-A modern web browser (Chrome or Edge recommended).
-
-A microphone connected to your computer.
-
-The application must be served over HTTPS or localhost to access the Microphone and Web Audio APIs.
-
-Running Locally
-Clone this repository to your machine.
-
-Since this is a single-file application, you can open gemini-code-1783502298442.html directly in your browser.
-
-Note: If you see a blank page or missing UI, ensure you are running it through a local development server (e.g., VS Code "Live Server" extension) to satisfy browser security requirements.
-
-Troubleshooting
-UI Not Appearing: If buttons or selectors are missing, check the browser console (F12) for script errors. Ensure your local server is correctly serving the file.
-
-Microphone Not Working: Ensure your browser has explicit "Allow" permissions for your microphone for the specific URL.
-
-Audio Not Playing: The browser blocks audio until the first user interaction (the "Start Session" click). Ensure you are clicking this button to "resume" the AudioContext.
-
-Contributing
-We welcome contributions to help improve the pitch detection accuracy and UI stability. To contribute:
-
-Fork this repository.
-
-Create a new branch for your feature.
-
-Submit a Pull Request with a description of your changes.
+### 4. Advanced Visual Realism
+* **Precision Notation Placement:** The Treble Clef graphic loops elegantly around the second horizontal line from the bottom (the G line), and the note layout positions have been fine-tuned down to correctly represent pitch coordinates without causing false offset step anomalies.
+* **Continuous Tablature Design:** Removed traditional vertical measure line dividers (`|`) that often segment short computer phrases awkwardly. Tabs now flow with continuous double-hyphen buffers (`--`) simulating real guitar transcription documents.
+* **Proportional Tablature Scaling:** Dynamically scales font sizes depending on the absolute note count selected. This ensures wide runs compress evenly to fit the screen without clipping edge characters.
