@@ -8,9 +8,9 @@
         :root {
             --bg-color: #121214;
             --card-bg: #1c1c1f;
-            --accent-color: #007aff;
+            --accent-color: #ff9500;
             --success-color: #34c759;
-            --warning-color: #ff9500;
+            --warning-color: #007aff;
             --danger-color: #ff3b30;
             --text-main: #ffffff;
             --text-muted: #aeaeae;
@@ -33,20 +33,21 @@
             background-color: #2c2c2e; border: 1px solid #3a3a3c; color: var(--text-main); padding: 8px 12px; border-radius: 6px; outline: none;
         }
         .btn-container { display: flex; gap: 10px; margin-top: 15px; }
-        button { flex: 1; background-color: var(--accent-color); color: white; border: none; padding: 12px; border-radius: 8px; font-weight: 600; cursor: pointer; }
+        button { flex: 1; background-color: var(--accent-color); color: #000; border: none; padding: 12px; border-radius: 8px; font-weight: 700; cursor: pointer; transition: background 0.15s ease; }
+        button:hover { background-color: #ffaa33; }
         button:disabled { background-color: #3a3a3c; color: var(--text-muted); cursor: not-allowed; }
         
         .status-area { height: 75px; display: flex; flex-direction: column; justify-content: center; align-items: center; margin: 10px 0; }
         #status { font-size: 18px; font-weight: 500; text-align: center; }
-        .stage-active { color: var(--warning-color); }
-        .success { color: var(--success-color); }
+        .stage-active { color: var(--accent-color); font-weight: bold; }
+        .success { color: var(--success-color); font-weight: bold; }
         
-        .hint-box { width: 100%; max-width: 400px; padding: 8px; border-radius: 6px; background-color: #2c2c2e; font-weight: 600; text-align: center; margin-top: 5px; visibility: hidden; opacity: 0; transition: opacity 0.15s ease; }
+        .hint-box { width: 100%; max-width: 450px; padding: 8px; border-radius: 6px; background-color: #2c2c2e; font-weight: 600; text-align: center; margin-top: 8px; visibility: hidden; opacity: 0; transition: opacity 0.15s ease; }
         .pitch-match { background-color: rgba(52, 199, 89, 0.2); color: #34c759; }
-        .pitch-low { background-color: rgba(255, 149, 0, 0.2); color: #ff9500; }
+        .pitch-low { background-color: rgba(0, 122, 255, 0.2); color: #007aff; }
         .pitch-high { background-color: rgba(255, 59, 48, 0.2); color: #ff3b30; }
         
-        #letter-display { font-size: 72px; font-weight: 800; text-align: center; margin: 20px 0; display: none; }
+        #letter-display { font-size: 72px; font-weight: 800; text-align: center; margin: 20px 0; display: none; color: var(--accent-color); }
         
         .notation-container { display: block; visibility: hidden; height: 0; overflow: hidden; background: white; border-radius: 8px; padding: 0; margin-top: 0; transition: all 0.2s ease; }
         .notation-container.visible { visibility: visible; height: 180px; padding: 15px; margin-top: 15px; display: flex; justify-content: center; overflow-x: auto; }
@@ -57,7 +58,7 @@
         .fret-strip { display: flex; gap: 4px; }
         .fret-btn { flex: 1; background: #2c2c2e; border: 1px solid #3a3a3c; color: var(--text-main); text-align: center; padding: 8px 0; font-size: 11px; font-weight: bold; border-radius: 4px; cursor: pointer; transition: all 0.15s ease; }
         .fret-btn:hover { background: #3a3a3c; }
-        .fret-btn.highlighted { background: var(--accent-color); border-color: #0062cc; color: white; }
+        .fret-btn.highlighted { background: var(--accent-color); border-color: #cc7a00; color: black; }
 
         .fretboard-wrapper { width: 100%; overflow-x: auto; background: #2c251e; border-radius: 6px; border: 2px solid #1a1512; margin-top: 15px; padding: 10px 0; display: block; visibility: hidden; height: 0; overflow-y: hidden; transition: all 0.2s ease; }
         .fretboard-wrapper.visible { visibility: visible; height: auto; padding: 10px 0; }
@@ -67,9 +68,9 @@
         .string::after { content: attr(data-string-label); position: absolute; left: -20px; color: var(--text-muted); font-size: 12px; font-weight: bold; z-index: 3; width: 15px; text-align: right; }
         .fret { flex: 1 0 0; height: 100%; border-right: 2px solid #d4af37; position: relative; display: flex; align-items: center; justify-content: center; z-index: 2; }
         .fret:first-child { border-right: 5px solid #fff; background-color: rgba(0,0,0,0.4); }
-        .note-marker { width: 22px; height: 22px; border-radius: 50%; background-color: var(--danger-color); display: none; align-items: center; justify-content: center; font-size: 11px; font-weight: bold; color: white; z-index: 4; }
+        .note-marker { width: 22px; height: 22px; border-radius: 50%; background-color: var(--accent-color); display: none; align-items: center; justify-content: center; font-size: 11px; font-weight: bold; color: black; z-index: 4; }
         
-        pre#tab-display { background-color: #000; color: #34c759; padding: 18px; border-radius: 8px; font-family: 'Courier New', monospace; overflow-x: auto; display: none; white-space: pre; line-height: 1.5; margin-top: 15px; width: 100%; box-sizing: border-box; letter-spacing: 0px; }
+        pre#tab-display { background-color: #000; color: #ff9500; padding: 18px; border-radius: 8px; font-family: 'Courier New', monospace; overflow-x: auto; display: none; white-space: pre; line-height: 1.5; margin-top: 15px; width: 100%; box-sizing: border-box; letter-spacing: 0px; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -96,12 +97,12 @@
                 </select>
             </div>
             <div class="control-group">
-                <label>Scale Type</label>
+                <label>Scale / Vibe Type</label>
                 <select id="type-select">
-                    <option value="major">Major Scale</option>
-                    <option value="minor">Minor Scale</option>
-                    <option value="major_pentatonic">Major Pentatonic</option>
-                    <option value="minor_pentatonic" selected>Minor Pentatonic</option>
+                    <option value="major">Major Scale (Bright, Melodic)</option>
+                    <option value="minor">Natural Minor (Soulful, Deep)</option>
+                    <option value="major_pentatonic">Major Pentatonic (Sweet, Country-Blues)</option>
+                    <option value="minor_pentatonic" selected>Minor Pentatonic (Classic Blues-Rock)</option>
                 </select>
             </div>
             <div class="control-group">
@@ -109,16 +110,16 @@
                 <input type="number" id="beat-count" min="1" max="16" value="4">
             </div>
             <div class="control-group">
-                <label>Max Rhythm Form</label>
+                <label>Max Rhythm Syncopation</label>
                 <select id="rhythm-select">
-                    <option value="4">Quarter Notes</option>
-                    <option value="8">8th Notes</option>
-                    <option value="12">Triplet Notes</option>
-                    <option value="16">16th Notes</option>
+                    <option value="4">Quarter Notes Only</option>
+                    <option value="8">8th Note Subdivisions</option>
+                    <option value="12">Triplet Subdivisions</option>
+                    <option value="16">16th Note Fast Runs</option>
                 </select>
             </div>
             <div class="control-group">
-                <label>Tempo: <span id="bpm-val">100</span> BPM</label>
+                <label>Groove Tempo: <span id="bpm-val">100</span> BPM</label>
                 <input type="range" id="tempo-range" min="40" max="180" value="100">
             </div>
         </div>
@@ -129,20 +130,20 @@
                 <span id="range-label" class="range-label">Selected: Open to 12</span>
             </div>
             <div class="fret-strip" id="fret-strip">
-                <!-- Buttons dynamically loaded via initialization sequence -->
+                <!-- Buttons dynamically loaded -->
             </div>
         </div>
 
         <div class="btn-container">
             <button id="start-btn">Start Session</button>
             <button id="listen-btn" disabled>Play Again</button>
-            <button id="reveal-btn" disabled>Reveal Answer</button>
+            <button id="reveal-btn" disabled>Reveal Lick</button>
         </div>
     </div>
 
     <div class="card">
         <div class="status-area">
-            <div id="status">Ready when you are! Press "Start Session" to trade some licks.</div>
+            <div id="status">Ready when you are! Press "Start Session" to grab a groove.</div>
             <div id="hint-display" class="hint-box"></div>
         </div>
         
@@ -154,7 +155,7 @@
 
         <div class="fretboard-wrapper" id="fretboard-wrapper">
             <div class="fretboard" id="fretboard">
-                <!-- Clean representation grid matching instrument string outputs exactly -->
+                <!-- Instrument matrix -->
             </div>
         </div>
         <pre id="tab-display"></pre>
@@ -173,8 +174,6 @@ const stringBases = [
 ];
 const noteNames = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
 
-// Map MIDI pitches directly to standard octave-transposed guitar notation staff positions
-// Baseline y=65 is B4 (middle line of standard clef, corresponding to open B string on guitar)
 const midiToDiatonicStep = {
     40: -11, 41: -10, 42: -10, 43: -9, 44: -9, 45: -8, 46: -8, 47: -7,
     48: -6,  49: -6,  50: -5,  51: -5,  52: -4,  53: -3, 54: -3, 55: -2,
@@ -309,6 +308,9 @@ function buildActiveScale() {
     if (activeScaleNotes.length === 0) {
         activeScaleNotes = masterNotes.filter(n => names.includes(n.name));
     }
+    
+    // Sort logically by pitch so stepwise movement checks function cleanly
+    activeScaleNotes.sort((a,b) => a.freq - b.freq);
 }
 
 startBtn.addEventListener('click', () => {
@@ -340,16 +342,16 @@ function nextExercise() {
     const maxRhythm = parseInt(document.getElementById('rhythm-select').value);
     
     if (totalNotesRequested === 1) {
-        startBtn.innerText = "Next Note";
+        startBtn.innerText = "Next Lick";
         currentRiff = [];
         currentNote = { ...activeScaleNotes[Math.floor(Math.random() * activeScaleNotes.length)] };
         currentNote.rhythmType = 4;
         currentNote.beatIndex = 0;
         currentNote.subDivIndex = 0;
         currentStage = 'singing';
-        statusDiv.innerHTML = `<span class="stage-active">Listen closely...</span> Sing it, play it, or call it out!`;
+        statusDiv.innerHTML = `<span class="stage-active">Catch this pulse...</span> Sing it, play it, or let it ring out!`;
     } else {
-        startBtn.innerText = "Next Riff";
+        startBtn.innerText = "Next Lick";
         currentNote = null;
         currentRiff = [];
 
@@ -363,27 +365,26 @@ function nextExercise() {
         
         const totalAvailableSlots = totalQuarterBeats * subdivisionsPerBeat;
         
-        // --- NEW DEEP MUSICAL RHYTHM SEGREGATION ENGINE ---
-        // Instead of pure math chaos, group slots logically into strong beats and expressive offbeats
+        // --- MUSICAL PHRASE ENGINE GENERATION ---
         let downbeats = [];
         let offbeats = [];
         for (let s = 0; s < totalAvailableSlots; s++) {
             if (s % subdivisionsPerBeat === 0) {
-                downbeats.push(s);
+                downbeats.push(s); // 1, 2, 3, 4 beats
             } else {
-                offbeats.push(s);
+                offbeats.push(s);  // e, +, a syncopations
             }
         }
         
         let chosenSlots = [];
-        // Rule 1: Always anchor the phrase on Beat 1 downbeat so it sounds rhythmically natural
+        // Anchor the first beat to establish the pocket immediately
         if (downbeats.length > 0) {
             chosenSlots.push(downbeats.shift());
         }
         
-        // Rule 2: Distribute remaining notes cleanly, heavily prioritizing solid downbeats to keep it groovy
+        // Distribute notes: 70% lean towards strong downbeats to lock the baseline rhythm grid
         while(chosenSlots.length < Math.min(totalNotesRequested, totalAvailableSlots)) {
-            if (downbeats.length > 0 && Math.random() < 0.75) {
+            if (downbeats.length > 0 && Math.random() < 0.70) {
                 let randIdx = Math.floor(Math.random() * downbeats.length);
                 chosenSlots.push(downbeats.splice(randIdx, 1)[0]);
             } else if (offbeats.length > 0) {
@@ -397,10 +398,9 @@ function nextExercise() {
         }
         chosenSlots.sort((a, b) => a - b);
 
-        // --- NEW COHESIVE MELODIC STEP ENGINE ---
-        // Guide steps elegantly up and down scales like a real guitar phrase instead of massive mechanical leaps
-        let baseScaleIdx = Math.floor(Math.random() * activeScaleNotes.length);
-        let currentScaleIdx = baseScaleIdx;
+        // Pick a strategic central root node anchor point
+        let currentScaleIdx = Math.floor(activeScaleNotes.length / 2);
+        let rootAnchorIdx = currentScaleIdx;
 
         chosenSlots.forEach((slotIndex, i) => {
             let totalSubdivIndex = slotIndex;
@@ -408,25 +408,25 @@ function nextExercise() {
             let subDivIndex = totalSubdivIndex % subdivisionsPerBeat;
 
             if (i > 0) {
-                // Keep movement natural: mostly steps or tight chordal jumps
-                let movementChance = Math.random();
-                if (movementChance < 0.6) {
-                    // Stepwise scale movement (up or down 1 degree)
-                    let direction = Math.random() > 0.5 ? 1 : -1;
-                    currentScaleIdx = (currentScaleIdx + direction + activeScaleNotes.length) % activeScaleNotes.length;
-                } else if (movementChance < 0.9) {
-                    // A tight, classic interval skip (3rd or 5th harmonic jump)
-                    let direction = Math.random() > 0.5 ? 2 : -2;
-                    currentScaleIdx = (currentScaleIdx + direction + activeScaleNotes.length) % activeScaleNotes.length;
+                let r = Math.random();
+                if (r < 0.55) {
+                    // Smooth, musical step-wise melody movement
+                    let step = Math.random() > 0.5 ? 1 : -1;
+                    currentScaleIdx = Math.max(0, Math.min(activeScaleNotes.length - 1, currentScaleIdx + step));
+                } else if (r < 0.85) {
+                    // Standard pentatonic skipping (3rds or 4ths leaps)
+                    let jump = Math.random() > 0.5 ? 2 : -2;
+                    currentScaleIdx = Math.max(0, Math.min(activeScaleNotes.length - 1, currentScaleIdx + jump));
                 } else {
-                    // Return to the home base root note for a dynamic theme repeat
-                    currentScaleIdx = baseScaleIdx;
+                    // Call-and-response structural resolution back to root node vibe
+                    currentScaleIdx = rootAnchorIdx;
                 }
             }
 
-            // Rule 3: Gracefully resolve the final phrase target note straight to the tonic root or dominant 5th
+            // Clean melodic dynamic resolution on the last note phrase
             if (i === chosenSlots.length - 1 && chosenSlots.length > 1) {
-                currentScaleIdx = baseScaleIdx % activeScaleNotes.length;
+                let finalOptions = [rootAnchorIdx, Math.max(0, rootAnchorIdx - 1), Math.min(activeScaleNotes.length - 1, rootAnchorIdx + 2)];
+                currentScaleIdx = finalOptions[Math.floor(Math.random() * finalOptions.length)];
             }
 
             let noteCopy = { ...activeScaleNotes[currentScaleIdx] };
@@ -438,7 +438,7 @@ function nextExercise() {
         
         currentRiffIndex = 0;
         currentStage = 'riff_tracking';
-        statusDiv.innerHTML = `<span class="stage-active">Catch this lick...</span> Play it back note-by-note!`;
+        statusDiv.innerHTML = `<span class="stage-active">Lock into this groove...</span> Trade back note-by-note!`;
     }
 
     listenBtn.disabled = false;
@@ -481,7 +481,7 @@ function playSynthTone(freq, start, duration) {
     const subOsc = audioCtx.createOscillator(); 
     const gain = audioCtx.createGain();
     
-    // Smooth custom synthesis profile resembling an organic clean electric jazz guitar pluck
+    // Warm tone simulation
     osc.type = 'triangle';
     osc.frequency.setValueAtTime(freq, start);
     
@@ -489,8 +489,8 @@ function playSynthTone(freq, start, duration) {
     subOsc.frequency.setValueAtTime(freq * 2, start); 
 
     gain.gain.setValueAtTime(0, start);
-    gain.gain.linearRampToValueAtTime(0.35, start + 0.005); 
-    gain.gain.exponentialRampToValueAtTime(0.10, start + 0.09); 
+    gain.gain.linearRampToValueAtTime(0.28, start + 0.008); 
+    gain.gain.exponentialRampToValueAtTime(0.12, start + 0.08); 
     gain.gain.linearRampToValueAtTime(0.001, start + duration);
 
     osc.connect(gain);
@@ -514,7 +514,7 @@ function setupMicrophone() {
         analyser.fftSize = 2048;
         audioCtx.createMediaStreamSource(stream).connect(analyser);
         listenPitch();
-    }).catch(err => console.error("Microphone setup ran into a snag:", err));
+    }).catch(err => console.error("Microphone linkage encountered an active snag:", err));
 }
 
 function setupVoiceCommands() {
@@ -541,7 +541,7 @@ function setupVoiceCommands() {
         }
     };
 
-    speechRecognizer.onerror = (e) => { console.log("Speech engine tracking: ", e.error); };
+    speechRecognizer.onerror = (e) => { console.log("Speech engine tracking update: ", e.error); };
     speechRecognizer.onend = () => { try { speechRecognizer.start(); } catch(e){} };
     speechRecognizer.start();
 }
@@ -573,14 +573,14 @@ function listenPitch() {
 
         if (Math.abs(cents) < 60) {
             hintDisplay.className = "hint-box pitch-match";
-            hintDisplay.innerText = currentNote ? "Spot on! Beautifully in tune." : `Nailed note ${currentRiffIndex + 1}! Keep it up!`;
+            hintDisplay.innerText = currentNote ? "Spot on! Beautifully in tune." : `Nailed it! Perfect phrase match on note ${currentRiffIndex + 1}!`;
             consecutiveMatches++;
 
-            if (consecutiveMatches >= 5) {
+            if (consecutiveMatches >= 4) {
                 consecutiveMatches = 0;
                 if (currentNote) {
                     currentStage = 'idle';
-                    statusDiv.innerHTML = `<span class="success">Perfect match!</span> Hit 'Next Note' or tell me 'Next' to keep flowing.`;
+                    statusDiv.innerHTML = `<span class="success">Nailed it! You've got great ears.</span> Hit 'Next Lick' to continue.`;
                 } else {
                     currentRiffIndex++;
                     isAudioPlaying = true;
@@ -588,9 +588,9 @@ function listenPitch() {
 
                     if (currentRiffIndex >= currentRiff.length) {
                         currentStage = 'idle';
-                        statusDiv.innerHTML = `<span class="success">Lick cleared perfectly!</span> Your ears are getting razor sharp.`;
+                        statusDiv.innerHTML = `<span class="success">Spot on! Perfectly locked into the grid.</span> Your alignment is pristine!`;
                     } else {
-                        statusDiv.innerHTML = `Awesome rhythm! Lock onto note ${currentRiffIndex + 1} of ${currentRiff.length}...`;
+                        statusDiv.innerHTML = `Great pocket backbone! Lock onto note ${currentRiffIndex + 1} of ${currentRiff.length}...`;
                     }
                 }
             }
@@ -624,7 +624,6 @@ function renderStandardNotation(notesArray) {
     notationSvg.setAttribute('width', calculatedWidth);
     notationSvg.setAttribute('viewBox', `0 0 ${calculatedWidth} 160`);
 
-    // Draw the 5 standard staff lines
     for (let i = 0; i < 5; i++) {
         let y = 45 + (i * 10); 
         let line = document.createElementNS(svgNS, "line");
@@ -634,7 +633,6 @@ function renderStandardNotation(notesArray) {
         notationSvg.appendChild(line);
     }
 
-    // Treble Clef centered correctly on the G4 line (y=75)
     let clef = document.createElementNS(svgNS, "text");
     clef.setAttribute("x", "12"); 
     clef.setAttribute("y", "82"); 
@@ -646,7 +644,6 @@ function renderStandardNotation(notesArray) {
         let xOffset = 80 + (index * 45);
         let yOffset = note.staffY;
 
-        // Correctly handle ledger lines matching engraving standards
         if (yOffset >= 95) {
             for (let ly = 95; ly <= yOffset; ly += 10) {
                 let lLine = document.createElementNS(svgNS, "line");
@@ -682,8 +679,6 @@ function renderStandardNotation(notesArray) {
         noteHead.setAttribute("fill", "#111");
         notationSvg.appendChild(noteHead);
 
-        // Standard rules for stem direction: Notes on or above the middle line (y <= 65) have stems down on the left.
-        // Notes below the middle line (y > 65) have stems up on the right.
         let stem = document.createElementNS(svgNS, "line");
         let stemUp = yOffset > 65; 
         stem.setAttribute("x1", stemUp ? xOffset + 6.5 : xOffset - 6.5);
@@ -725,7 +720,7 @@ function revealAnswer() {
         fretboardWrapper.classList.remove('visible');
         
         const order = ['e', 'B', 'G', 'D', 'A', 'E'];
-        const stringLabels = { 'e': 'e|', 'B': 'B|', 'G': 'G|', 'D': 'D|', 'A': 'A|', 'E': 'E|' };
+        const stringLabels = { 'e': 'e|--', 'B': 'B|--', 'G': 'G|--', 'D': 'D|--', 'A': 'A|--', 'E': 'E|--' };
         
         let rhythmType = currentRiff[0].rhythmType;
         let stepsPerBeat = 1;
@@ -734,8 +729,6 @@ function revealAnswer() {
         else if (rhythmType === 8) stepsPerBeat = 2;
         
         let totalBeats = totalBarsCalculated * 4;
-        
-        // Build a perfect grid map for all subdivisions across the riff to guarantee flawless alignment
         let slots = [];
         for (let b = 0; b < totalBeats; b++) {
             for (let sub = 0; sub < stepsPerBeat; sub++) {
@@ -743,23 +736,21 @@ function revealAnswer() {
             }
         }
         
-        // Step 1: Detect double digits within each slice to align structural columns dynamically
+        // --- CHARACTER-GRIPPED DYNAMIC SPACING ALIGNMENT ---
         let slotWidths = slots.map(slot => {
             let matchedNotes = currentRiff.filter(n => n.beatIndex === slot.beatIndex && n.subDivIndex === slot.subDivIndex);
             let hasDoubleDigit = matchedNotes.some(n => n.fret > 9);
-            // Dynamic padding based on rhythmic subdivisions and fret counts
-            return hasDoubleDigit ? 4 : (rhythmType === 16 ? 3 : 4);
+            // Dynamic allocation ensuring enough room for multi-character text padding
+            return hasDoubleDigit ? 5 : (rhythmType === 16 ? 4 : 5);
         });
         
-        // Step 2: Construct timelines and matching string rows character-by-character
-        let beatTimelineLine = '   '; 
+        let beatTimelineLine = '    '; 
         let tabMatrix = { 'e': '', 'B': '', 'G': '', 'D': '', 'A': '', 'E': '' };
         
         slots.forEach((slot, idx) => {
             let width = slotWidths[idx];
             let matchedNotes = currentRiff.filter(n => n.beatIndex === slot.beatIndex && n.subDivIndex === slot.subDivIndex);
             
-            // Build the timing guide label string
             let timeLabel = '';
             if (slot.subDivIndex === 0) {
                 timeLabel = ((slot.beatIndex % 4) + 1).toString();
@@ -798,7 +789,7 @@ window.addEventListener('DOMContentLoaded', () => {
 });
 
 function runPreFlightDiagnosticTests() {
-    console.log("%c=== RUNNING GUITAR EAR TRAINER RUNTIME TESTS ===", "color: #007aff; font-weight: bold;");
+    console.log("%c=== RUNNING GUITAR EAR TRAINER RUNTIME TESTS ===", "color: #ff9500; font-weight: bold;");
     const strip = document.getElementById('fret-strip');
     if (strip && strip.children.length === 13) {
         console.log("✅ Test 1 Passed: Setup focus range selector verified with 13 distinct button instances (Open-12).");
