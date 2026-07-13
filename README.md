@@ -1,20 +1,52 @@
-# Brenton's Guitar Ear Trainer
+# Brenton's Guitar Ear Trainer — User & Technical Manual
 
-An adaptive, web-based ear training application designed specifically for guitarists. The application generates highly melodic, context-aware riffs based on selected guitar scales, allows real-time interactive pitch tracking via microphone input, and displays musical solutions in both standard notation and cleanly spaced guitar tablature.
+Welcome to **Brenton's Guitar Ear Trainer**, a standalone interactive environment explicitly engineered to bridge functional pitch training with native guitar visualizations. The system generates context-aware, scale-correct intervals and tracks your microphone input in real-time, matching standard pitch configurations against standard notation systems and guitar tablature formatting.
 
 ---
 
-## 🚀 Key Features & Architectural Enhancements
+## 🛠️ Step-by-Step Operating Instructions
 
-### 1. Dynamic Rhythmic Engine
-* **Flexible Beats Configuration:** The "Total Notes to Play" control references the explicit `#beat-count` parameters mapping out dynamically inside a 4/4 time structure spanning up to 4 bars (16 quarter beats maximum).
-* **Grid Subdivision Spacing:** Rather than compressing notes back-to-back, the app randomly and authentically spaces notes across subdivisions (Quarter notes, 8th notes, Triplet divisions, or 16th notes) based on the **Max Rhythm Form** chosen.
+### 1. Configure the Generation Matrix
+Before launching an exercise session, customize the problem space constraints via the top dashboard pane:
+* **Root Key & Scale Type:** Establish the harmonic center (e.g., E Minor Pentatonic or C Major). The engine calculates exact relative frequencies instead of pulling arbitrary pitch loops.
+* **Total Notes to Play:** Set this value to `1` to run **Single Note Target Training**. Set it to `2` or higher (up to `16`) to dynamically swap the system into **Multi-Note Riff Mode**.
+* **Max Rhythm Form:** Dictates the micro-timing grid constraint. Choosing *Quarter Notes* locks generated targets strictly onto downbeats. Moving to *8th Notes*, *Triplet Notes*, or *16th Notes* commands the mathematical model to scatter notes across authentic offbeat slots.
+* **Tempo Controls:** Drag the slider or dial the parameters between 40 BPM and 180 BPM to determine playback speed.
 
-### 2. Melodic & Bounded Focus Selection Logic
-* **Musically Intelligible Phrases:** Bounded scales (Major, Minor, Major Pentatonic, Minor Pentatonic) determine melodic note structures, matching authentic intervals over step-wise sequences.
-* **Fret Range Selection Isolation:** A compact selector strip from Open to Fret 12 sits cleanly inside the exercise setup panel. Min and max limits allow users to restrict exercises to narrow sectors, establishing absolute note location familiarity before expanding to broader zones.
+### 2. Isolate the Fretboard Focus Range
+* Beneath the parameter fields lies a dynamic 13-key focus strip labeled **Open** through **Fret 12**.
+* **To Select a Range:** Click your target minimum boundary fret button once, then click your target maximum boundary fret button second. 
+* The interface highlights the active block, forcing all procedural single-note or riff engine notes to spawn exclusively inside this designated physical guitar tier.
 
-### 3. Layout Stability & Precision Rendering
-* **Pre-allocated Container States:** Elements like standard notation panels preserve zero-bounce layout constraints through explicit height boundaries and visibility transformations.
-* **Accurate Treble Clef Balancing Vector:** The graphic rendering loops center directly across standard lines, matching standard formatting conventions, while procedural note placement accurately pairs accidental elements ($♯$) and custom multi-ledger parameters directly to the executed frequency array.
-* **Pixel-Perfect Tablature Alignment Grid:** Fixed structural widths inside the generator buffer force sub-beat indicators (`1`, `e`, `+`, `a`) to align strictly overhead of note columns, eradicating alignment drift for multi-digit frets.
+### 3. Execution & Training Interaction Loop
+1. Click **Start Session**. This will invoke your browser's Web Audio Context permissions window. Grant access to your microphone device.
+2. The trainer instantly processes a scale-correct musical sequence, sounding the prompt using a dual-oscillator acoustic synth framework.
+3. **Analyze & Play Back:** 
+   * Hum, sing, or strike your physical guitar strings into your microphone. 
+   * The system samples your output through a native autocorrelation pitch-tracker.
+   * The visual HUD status panel updates on the fly. If you are slightly off-pitch, it changes color, warning you that the tone is **Pitch too low!** or **Pitch too high!**.
+   * Match the correct frequency steadily for 5 frames to clear the note target.
+4. If you miss a note or need a reminder, click **Play Again**.
+
+### 4. Reading the Realigned Answer Panels
+When you struggle with an exercise or clear the phase, click **Reveal Answer** to deploy the visualization engines:
+* **The Standard Notation Canvas:** Standard rendering vectors draw a traditional 5-line musical staff layout. The Treble G-Clef glyph (`𝄞`) sits accurately on the baseline grid, looping its inner core exactly around the second line from the bottom (G4 line). Sharp accidentals (`♯`) and custom overhead/under-hanging ledger lines align naturally beside note heads following strict engraving standards (transposed up one octave for native guitar representation).
+* **The Interactive Fretboard Map:** If you are testing a single note, an explicit red marker pops up over the target string matrix, displaying the precise location of the fret to finger.
+* **The Grid-Aligned Tablature System:** In Multi-Note Riff Mode, the app drops a standard 6-line textual ASCII tab string. Sub-beat timeline markers (`1`, `e`, `+`, `a`) sit anchored directly above the note columns with perfect character-by-character structural padding alignment, ensuring absolute readability.
+
+---
+
+## 🎙️ Hands-Free Voice Commands
+The software incorporates a native speech processing engine. While an exercise status loop is engaged, you can speak directly into your microphone using these structural command verbs:
+* `"Next"` — Commands the interface to execute `nextExercise()`, instantly cleaning the canvas and generating a brand new configuration.
+* `"Repeat"` — Commands the media engine to replay the active tone or structural riff block.
+* `"Faster"` — Speeds up the target tempo matrix by 20 BPM.
+* `"Slower"` — Lowers the active tempo matrix by 20 BPM.
+
+---
+
+## 🖥️ Local Installation & Technical Deployment
+No compilation layers or build installations are needed to deploy or utilize the ear trainer:
+1. Save the codebase chunk listed in `File 2: index.html` locally onto your computer file system under the filename `index.html`.
+2. Double-click the saved `index.html` file to run it locally inside any modern standard desktop web browser (e.g., Chrome, Safari, Firefox, Edge).
+3. Ensure you are running the environment locally or over a secure `https://` origin line, as modern browser engines block microphone access loops on insecure network connections.

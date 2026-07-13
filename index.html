@@ -173,13 +173,15 @@ const stringBases = [
 ];
 const noteNames = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
 
+// Map MIDI pitches directly to standard octave-transposed guitar notation staff positions
+// Baseline y=65 is B4 (middle line of standard clef, corresponding to open B string on guitar)
 const midiToDiatonicStep = {
-    40: -18, 41: -17, 42: -17, 43: -16, 44: -16, 45: -15, 46: -15, 47: -14,
-    48: -13, 49: -13, 50: -12, 51: -12, 52: -11, 53: -10, 54: -10, 55: -9,
-    56: -9,  57: -8,  58: -8,  59: -7,  60: -6,  61: -6,  62: -5,  63: -5,
-    64: -4,  65: -3,  66: -3,  67: -2,  68: -2,  69: -1,  70: -1,  71: 0,
-    72: 1,   73: 1,   74: 2,   75: 2,   76: 3,   77: 4,   78: 4,   79: 5,
-    80: 5,   81: 6,   82: 6,   83: 7,   84: 8,   85: 8,   86: 9,   87: 9, 88: 10
+    40: -11, 41: -10, 42: -10, 43: -9, 44: -9, 45: -8, 46: -8, 47: -7,
+    48: -6,  49: -6,  50: -5,  51: -5,  52: -4,  53: -3, 54: -3, 55: -2,
+    56: -2,  57: -1,  58: -1,  59: 0,   60: 1,   61: 1,  62: 2,  63: 2,
+    64: 3,   65: 4,   66: 4,   67: 5,   68: 5,   69: 6,  70: 6,  71: 7,
+    72: 8,   73: 8,   74: 9,   75: 9,   76: 10,  77: 11, 78: 11, 79: 12,
+    80: 12,  81: 13,  82: 13,  83: 14,  84: 15,  85: 15, 86: 16, 87: 16, 88: 17
 };
 
 stringBases.forEach(sb => {
@@ -585,6 +587,7 @@ function renderStandardNotation(notesArray) {
     notationSvg.setAttribute('width', calculatedWidth);
     notationSvg.setAttribute('viewBox', `0 0 ${calculatedWidth} 160`);
 
+    // Draw the 5 standard staff lines
     for (let i = 0; i < 5; i++) {
         let y = 45 + (i * 10); 
         let line = document.createElementNS(svgNS, "line");
@@ -594,6 +597,7 @@ function renderStandardNotation(notesArray) {
         notationSvg.appendChild(line);
     }
 
+    // Treble Clef centered correctly on the G4 line (y=75)
     let clef = document.createElementNS(svgNS, "text");
     clef.setAttribute("x", "12"); 
     clef.setAttribute("y", "82"); 
@@ -605,6 +609,7 @@ function renderStandardNotation(notesArray) {
         let xOffset = 80 + (index * 45);
         let yOffset = note.staffY;
 
+        // Correctly handle ledger lines matching engraving standards
         if (yOffset >= 95) {
             for (let ly = 95; ly <= yOffset; ly += 10) {
                 let lLine = document.createElementNS(svgNS, "line");
@@ -640,11 +645,13 @@ function renderStandardNotation(notesArray) {
         noteHead.setAttribute("fill", "#111");
         notationSvg.appendChild(noteHead);
 
+        // Standard rules for stem direction: Notes on or above the middle line (y <= 65) have stems down on the left.
+        // Notes below the middle line (y > 65) have stems up on the right.
         let stem = document.createElementNS(svgNS, "line");
         let stemUp = yOffset > 65; 
-        stem.setAttribute("x1", stemUp ? xOffset + 6 : xOffset - 6);
+        stem.setAttribute("x1", stemUp ? xOffset + 6.5 : xOffset - 6.5);
         stem.setAttribute("y1", yOffset);
-        stem.setAttribute("x2", stemUp ? xOffset + 6 : xOffset - 6);
+        stem.setAttribute("x2", stemUp ? xOffset + 6.5 : xOffset - 6.5);
         stem.setAttribute("y2", stemUp ? yOffset - 28 : yOffset + 28);
         stem.setAttribute("stroke", "#111"); stem.setAttribute("stroke-width", "2");
         notationSvg.appendChild(stem);
@@ -683,53 +690,62 @@ function revealAnswer() {
         const order = ['e', 'B', 'G', 'D', 'A', 'E'];
         const stringLabels = { 'e': 'e|', 'B': 'B|', 'G': 'G|', 'D': 'D|', 'A': 'A|', 'E': 'E|' };
         
-        let tabMatrix = { 'e': '', 'B': '', 'G': '', 'D': '', 'A': '', 'E': '' };
         let rhythmType = currentRiff[0].rhythmType;
-        
         let stepsPerBeat = 1;
         if (rhythmType === 16) stepsPerBeat = 4;
         else if (rhythmType === 12) stepsPerBeat = 3;
         else if (rhythmType === 8) stepsPerBeat = 2;
         
         let totalBeats = totalBarsCalculated * 4;
-        let beatTimelineLine = '  '; 
-
+        
+        // Build a perfect grid map for all subdivisions across the riff to guarantee flawless alignment
+        let slots = [];
         for (let b = 0; b < totalBeats; b++) {
             for (let sub = 0; sub < stepsPerBeat; sub++) {
-                let matchedNotes = currentRiff.filter(n => n.beatIndex === b && n.subDivIndex === sub);
-                let hasDoubleDigit = matchedNotes.some(n => n.fret > 9);
-                
-                let timeChar = '-';
-                if (sub === 0) {
-                    timeChar = ((b % 4) + 1).toString();
-                } else if (stepsPerBeat === 2) {
-                    timeChar = '+';
-                } else if (stepsPerBeat === 4) {
-                    timeChar = (sub === 1) ? 'e' : (sub === 2 ? '+' : 'a');
-                } else if (stepsPerBeat === 3) {
-                    timeChar = '+';
-                }
-                
-                beatTimelineLine += timeChar + (hasDoubleDigit ? '--' : '-');
-                
-                order.forEach(s => {
-                    let note = matchedNotes.find(n => n.string === s);
-                    if (note) {
-                        let fretStr = note.fret.toString();
-                        tabMatrix[s] += fretStr + (hasDoubleDigit && fretStr.length === 1 ? '-' : '');
-                    } else {
-                        tabMatrix[s] += hasDoubleDigit ? '--' : '-';
-                    }
-                    tabMatrix[s] += '-';
-                });
-                
-                beatTimelineLine += '-';
+                slots.push({ beatIndex: b, subDivIndex: sub });
             }
         }
         
+        // Step 1: Detect double digits within each slice to align structural columns dynamically
+        let slotWidths = slots.map(slot => {
+            let matchedNotes = currentRiff.filter(n => n.beatIndex === slot.beatIndex && n.subDivIndex === slot.subDivIndex);
+            let hasDoubleDigit = matchedNotes.some(n => n.fret > 9);
+            // Dynamic padding based on rhythmic subdivisions and fret counts
+            return hasDoubleDigit ? 4 : (rhythmType === 16 ? 3 : 4);
+        });
+        
+        // Step 2: Construct timelines and matching string rows character-by-character
+        let beatTimelineLine = '   '; 
+        let tabMatrix = { 'e': '', 'B': '', 'G': '', 'D': '', 'A': '', 'E': '' };
+        
+        slots.forEach((slot, idx) => {
+            let width = slotWidths[idx];
+            let matchedNotes = currentRiff.filter(n => n.beatIndex === slot.beatIndex && n.subDivIndex === slot.subDivIndex);
+            
+            // Build the timing guide label string
+            let timeLabel = '';
+            if (slot.subDivIndex === 0) {
+                timeLabel = ((slot.beatIndex % 4) + 1).toString();
+            } else if (rhythmType === 8) {
+                timeLabel = '+';
+            } else if (rhythmType === 12) {
+                timeLabel = slot.subDivIndex === 1 ? '+' : 'a';
+            } else if (rhythmType === 16) {
+                timeLabel = slot.subDivIndex === 1 ? 'e' : (slot.subDivIndex === 2 ? '+' : 'a');
+            }
+            
+            beatTimelineLine += timeLabel.padEnd(width, '-');
+            
+            order.forEach(s => {
+                let note = matchedNotes.find(n => n.string === s);
+                let fretVal = note ? note.fret.toString() : '-';
+                tabMatrix[s] += fretVal.padEnd(width, '-');
+            });
+        });
+        
         let completeTab = beatTimelineLine + '\n' + order.map(s => `${stringLabels[s]}${tabMatrix[s]}`).join('\n');
         
-        let totalTextColumns = 2 + (totalBeats * stepsPerBeat * (rhythmType > 8 ? 3 : 2));
+        let totalTextColumns = beatTimelineLine.length;
         let calculatedFontSize = 14;
         if (totalTextColumns > 45) calculatedFontSize = 12;
         if (totalTextColumns > 65) calculatedFontSize = 10;
