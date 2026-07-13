@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Brenton's Ear Trainer</title>
+    <title>Brenton's Guitar Ear Trainer</title>
     <style>
         :root {
             --bg-color: #121214;
@@ -51,7 +51,6 @@
         .notation-container { display: block; visibility: hidden; height: 0; overflow: hidden; background: white; border-radius: 8px; padding: 0; margin-top: 0; transition: all 0.2s ease; }
         .notation-container.visible { visibility: visible; height: 180px; padding: 15px; margin-top: 15px; display: flex; justify-content: center; overflow-x: auto; }
         
-        /* Compact Exercise Setup Selector Styling */
         .setup-selector-container { margin-top: 15px; background: #232326; padding: 12px; border-radius: 8px; border: 1px solid #2c2c2e; }
         .range-header { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 13px; font-weight: bold; }
         .range-label { color: var(--accent-color); }
@@ -70,13 +69,12 @@
         .fret:first-child { border-right: 5px solid #fff; background-color: rgba(0,0,0,0.4); }
         .note-marker { width: 22px; height: 22px; border-radius: 50%; background-color: var(--danger-color); display: none; align-items: center; justify-content: center; font-size: 11px; font-weight: bold; color: white; z-index: 4; }
         
-        pre#tab-display { background-color: #000; color: #34c759; padding: 18px; border-radius: 8px; font-family: 'Courier New', monospace; overflow-x: hidden; display: none; white-space: pre; line-height: 1.5; margin-top: 15px; width: 100%; box-sizing: border-box; }
+        pre#tab-display { background-color: #000; color: #34c759; padding: 18px; border-radius: 8px; font-family: 'Courier New', monospace; overflow-x: auto; display: none; white-space: pre; line-height: 1.5; margin-top: 15px; width: 100%; box-sizing: border-box; letter-spacing: 0px; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <!-- Exercise Setup Area Card -->
     <div class="card">
         <h2>Brenton's Guitar Ear Trainer</h2>
         <div class="controls-grid">
@@ -125,7 +123,6 @@
             </div>
         </div>
 
-        <!-- Bounded Exercise Isolation Strip Selector -->
         <div class="setup-selector-container">
             <div class="range-header">
                 <span>Restrict Fretboard Generation Range (Open - Fret 12)</span>
@@ -143,7 +140,6 @@
         </div>
     </div>
 
-    <!-- Interactive Workspace Session Tracking Card -->
     <div class="card">
         <div class="status-area">
             <div id="status">Press "Start Session" to begin training.</div>
@@ -166,7 +162,6 @@
 </div>
 
 <script>
-// Procedural Generation Matrix mapping exact structural values across strings and frets
 const masterNotes = [];
 const stringBases = [
     { label: 'e', midi: 64 },
@@ -178,14 +173,15 @@ const stringBases = [
 ];
 const noteNames = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
 
-// High Precision Clef Translation Mapping: Relative offset bounds measuring steps from the B4 Line (MIDI 71)
+// Map MIDI pitches directly to standard octave-transposed guitar notation staff positions
+// Baseline y=65 is B4 (middle line of standard clef, corresponding to open B string on guitar)
 const midiToDiatonicStep = {
-    40: -18, 41: -17, 42: -17, 43: -16, 44: -16, 45: -15, 46: -15, 47: -14,
-    48: -13, 49: -13, 50: -12, 51: -12, 52: -11, 53: -10, 54: -10, 55: -9,
-    56: -9,  57: -8,  58: -8,  59: -7,  60: -6,  61: -6,  62: -5,  63: -5,
-    64: -4,  65: -3,  66: -3,  67: -2,  68: -2,  69: -1,  70: -1,  71: 0,
-    72: 1,   73: 1,   74: 2,   75: 2,   76: 3,   77: 4,   78: 4,   79: 5,
-    80: 5,   81: 6,   82: 6,   83: 7,   84: 8,   85: 8,   86: 9,   87: 9, 88: 10
+    40: -11, 41: -10, 42: -10, 43: -9, 44: -9, 45: -8, 46: -8, 47: -7,
+    48: -6,  49: -6,  50: -5,  51: -5,  52: -4,  53: -3, 54: -3, 55: -2,
+    56: -2,  57: -1,  58: -1,  59: 0,   60: 1,   61: 1,  62: 2,  63: 2,
+    64: 3,   65: 4,   66: 4,   67: 5,   68: 5,   69: 6,  70: 6,  71: 7,
+    72: 8,   73: 8,   74: 9,   75: 9,   76: 10,  77: 11, 78: 11, 79: 12,
+    80: 12,  81: 13,  82: 13,  83: 14,  84: 15,  85: 15, 86: 16, 87: 16, 88: 17
 };
 
 stringBases.forEach(sb => {
@@ -194,7 +190,7 @@ stringBases.forEach(sb => {
         let freq = 440 * Math.pow(2, (midi - 69) / 12);
         let name = noteNames[midi % 12];
         let step = midiToDiatonicStep[midi] || 0;
-        let staffY = 65 - (step * 5); // Centers lines geometrically within 160px coordinate spaces
+        let staffY = 65 - (step * 5); 
         masterNotes.push({
             name: name,
             freq: parseFloat(freq.toFixed(2)),
@@ -212,7 +208,6 @@ let isAudioPlaying = false, hasStarted = false, speechRecognizer = null;
 let totalBarsCalculated = 1;
 let activeOscillators = [];
 
-// Range Selection Parameters Variables
 let firstFretClick = null;
 let minFret = 0;
 let maxFret = 12;
@@ -223,9 +218,7 @@ const fretboardWrapper = document.getElementById('fretboard-wrapper'), tabDispla
 const notationContainer = document.getElementById('notation-container'), notationSvg = document.getElementById('notation-svg');
 const fretboard = document.getElementById('fretboard'), fretStrip = document.getElementById('fret-strip');
 
-// Programmatically Initialize Fretboard Views and Workspace Elements
 function initializeAppLayout() {
-    // Generate Setup Isolated Area Buttons
     fretStrip.innerHTML = '';
     for (let i = 0; i <= 12; i++) {
         let btn = document.createElement('div');
@@ -237,7 +230,6 @@ function initializeAppLayout() {
     }
     updateStripSelectionHighlights();
 
-    // Render Clean Invisible Core Exercise Answer Grid
     fretboard.innerHTML = '';
     stringBases.forEach(sb => {
         let strRow = document.createElement('div');
@@ -312,7 +304,6 @@ function buildActiveScale() {
 
     let names = steps.map(st => scaleTemplate[(offset + st) % 12]);
     
-    // Exact Focus Range Filtering Boundary Constraint Enforcement
     activeScaleNotes = masterNotes.filter(n => names.includes(n.name) && n.fret >= minFret && n.fret <= maxFret);
     
     if (activeScaleNotes.length === 0) {
@@ -587,7 +578,6 @@ function autoCorrelate(buffer, sampleRate) {
     return maxpos !== -1 ? (sampleRate / maxpos) : -1;
 }
 
-// High Precision Standard Clef Vector Generation Engine
 function renderStandardNotation(notesArray) {
     notationContainer.classList.add('visible');
     const svgNS = "http://www.w3.org/2000/svg";
@@ -597,9 +587,9 @@ function renderStandardNotation(notesArray) {
     notationSvg.setAttribute('width', calculatedWidth);
     notationSvg.setAttribute('viewBox', `0 0 ${calculatedWidth} 160`);
 
-    // Standard Horizontal Baseline Arrays (Placed precisely within the viewport window)
+    // Draw the 5 standard staff lines
     for (let i = 0; i < 5; i++) {
-        let y = 45 + (i * 10); // Placements: 45 (F5), 55 (D5), 65 (B4), 75 (G4), 85 (E4)
+        let y = 45 + (i * 10); 
         let line = document.createElementNS(svgNS, "line");
         line.setAttribute("x1", "10"); line.setAttribute("y1", y);
         line.setAttribute("x2", calculatedWidth - 10); line.setAttribute("y2", y);
@@ -607,11 +597,11 @@ function renderStandardNotation(notesArray) {
         notationSvg.appendChild(line);
     }
 
-    // Treble Clef Render Optimization: Positioned perfectly to loop around the G4 Line (y=75)
+    // Treble Clef centered correctly on the G4 line (y=75)
     let clef = document.createElementNS(svgNS, "text");
-    clef.setAttribute("x", "15"); 
-    clef.setAttribute("y", "87"); // Mathematically balances the baseline font offset loops cleanly across rows
-    clef.setAttribute("font-family", "serif"); clef.setAttribute("font-size", "58");
+    clef.setAttribute("x", "12"); 
+    clef.setAttribute("y", "82"); 
+    clef.setAttribute("font-family", "serif"); clef.setAttribute("font-size", "52");
     clef.setAttribute("fill", "#111"); clef.textContent = "𝄞";
     notationSvg.appendChild(clef);
 
@@ -619,7 +609,7 @@ function renderStandardNotation(notesArray) {
         let xOffset = 80 + (index * 45);
         let yOffset = note.staffY;
 
-        // Lower Ledger Lines Generative System
+        // Correctly handle ledger lines matching engraving standards
         if (yOffset >= 95) {
             for (let ly = 95; ly <= yOffset; ly += 10) {
                 let lLine = document.createElementNS(svgNS, "line");
@@ -629,7 +619,6 @@ function renderStandardNotation(notesArray) {
                 notationSvg.appendChild(lLine);
             }
         } 
-        // Upper Ledger Lines Generative System
         else if (yOffset <= 35) {
             for (let ly = 35; ly >= yOffset; ly -= 10) {
                 let lLine = document.createElementNS(svgNS, "line");
@@ -640,7 +629,6 @@ function renderStandardNotation(notesArray) {
             }
         }
 
-        // Accidental Sharp Identification Vector Offset
         if (note.name.includes('#')) {
             let sharp = document.createElementNS(svgNS, "text");
             sharp.setAttribute("x", xOffset - 16); sharp.setAttribute("y", yOffset + 5);
@@ -657,11 +645,13 @@ function renderStandardNotation(notesArray) {
         noteHead.setAttribute("fill", "#111");
         notationSvg.appendChild(noteHead);
 
+        // Standard rules for stem direction: Notes on or above the middle line (y <= 65) have stems down on the left.
+        // Notes below the middle line (y > 65) have stems up on the right.
         let stem = document.createElementNS(svgNS, "line");
-        let stemUp = yOffset > 65; // Stem direction flip baseline tracking center row rule
-        stem.setAttribute("x1", stemUp ? xOffset + 6 : xOffset - 6);
+        let stemUp = yOffset > 65; 
+        stem.setAttribute("x1", stemUp ? xOffset + 6.5 : xOffset - 6.5);
         stem.setAttribute("y1", yOffset);
-        stem.setAttribute("x2", stemUp ? xOffset + 6 : xOffset - 6);
+        stem.setAttribute("x2", stemUp ? xOffset + 6.5 : xOffset - 6.5);
         stem.setAttribute("y2", stemUp ? yOffset - 28 : yOffset + 28);
         stem.setAttribute("stroke", "#111"); stem.setAttribute("stroke-width", "2");
         notationSvg.appendChild(stem);
@@ -700,61 +690,66 @@ function revealAnswer() {
         const order = ['e', 'B', 'G', 'D', 'A', 'E'];
         const stringLabels = { 'e': 'e|', 'B': 'B|', 'G': 'G|', 'D': 'D|', 'A': 'A|', 'E': 'E|' };
         
-        let tabMatrix = { 'e': '', 'B': '', 'G': '', 'D': '', 'A': '', 'E': '' };
         let rhythmType = currentRiff[0].rhythmType;
-        
         let stepsPerBeat = 1;
         if (rhythmType === 16) stepsPerBeat = 4;
         else if (rhythmType === 12) stepsPerBeat = 3;
         else if (rhythmType === 8) stepsPerBeat = 2;
         
         let totalBeats = totalBarsCalculated * 4;
-        let beatTimelineLine = '   '; 
-
+        
+        // Build a perfect grid map for all subdivisions across the riff to guarantee flawless alignment
+        let slots = [];
         for (let b = 0; b < totalBeats; b++) {
             for (let sub = 0; sub < stepsPerBeat; sub++) {
-                let matchedNotes = currentRiff.filter(n => n.beatIndex === b && n.subDivIndex === sub);
-                
-                let maxLen = 1;
-                order.forEach(s => {
-                    let note = matchedNotes.find(n => n.string === s);
-                    if (note && note.fret > 9) maxLen = 2;
-                });
-
-                if (sub === 0) {
-                    let beatIndicator = ((b % 4) + 1).toString();
-                    beatTimelineLine += beatIndicator + (maxLen === 2 ? '   ' : '  ');
-                } else {
-                    let mark = ' ';
-                    if (stepsPerBeat === 2) mark = '+';
-                    else if (stepsPerBeat === 4) mark = (sub === 2 ? '+' : '.');
-                    else if (stepsPerBeat === 3) mark = '.';
-                    
-                    beatTimelineLine += mark + (maxLen === 2 ? '   ' : '  ');
-                }
-
-                order.forEach(s => {
-                    let note = matchedNotes.find(n => n.string === s);
-                    if (note) {
-                        tabMatrix[s] += note.fret.toString();
-                        if (maxLen === 2 && note.fret <= 9) tabMatrix[s] += '-';
-                    } else {
-                        tabMatrix[s] += maxLen === 2 ? '--' : '-';
-                    }
-                });
-
-                order.forEach(s => { tabMatrix[s] += '--'; });
-                beatTimelineLine += '  ';
+                slots.push({ beatIndex: b, subDivIndex: sub });
             }
         }
         
-        let completeTab = beatTimelineLine + '\n' + order.map(s => `${stringLabels[s]}-${tabMatrix[s]}`).join('\n');
+        // Step 1: Detect double digits within each slice to align structural columns dynamically
+        let slotWidths = slots.map(slot => {
+            let matchedNotes = currentRiff.filter(n => n.beatIndex === slot.beatIndex && n.subDivIndex === slot.subDivIndex);
+            let hasDoubleDigit = matchedNotes.some(n => n.fret > 9);
+            // Dynamic padding based on rhythmic subdivisions and fret counts
+            return hasDoubleDigit ? 4 : (rhythmType === 16 ? 3 : 4);
+        });
         
-        let totalTextColumns = 3 + (totalBeats * stepsPerBeat * 3);
+        // Step 2: Construct timelines and matching string rows character-by-character
+        let beatTimelineLine = '   '; 
+        let tabMatrix = { 'e': '', 'B': '', 'G': '', 'D': '', 'A': '', 'E': '' };
+        
+        slots.forEach((slot, idx) => {
+            let width = slotWidths[idx];
+            let matchedNotes = currentRiff.filter(n => n.beatIndex === slot.beatIndex && n.subDivIndex === slot.subDivIndex);
+            
+            // Build the timing guide label string
+            let timeLabel = '';
+            if (slot.subDivIndex === 0) {
+                timeLabel = ((slot.beatIndex % 4) + 1).toString();
+            } else if (rhythmType === 8) {
+                timeLabel = '+';
+            } else if (rhythmType === 12) {
+                timeLabel = slot.subDivIndex === 1 ? '+' : 'a';
+            } else if (rhythmType === 16) {
+                timeLabel = slot.subDivIndex === 1 ? 'e' : (slot.subDivIndex === 2 ? '+' : 'a');
+            }
+            
+            beatTimelineLine += timeLabel.padEnd(width, '-');
+            
+            order.forEach(s => {
+                let note = matchedNotes.find(n => n.string === s);
+                let fretVal = note ? note.fret.toString() : '-';
+                tabMatrix[s] += fretVal.padEnd(width, '-');
+            });
+        });
+        
+        let completeTab = beatTimelineLine + '\n' + order.map(s => `${stringLabels[s]}${tabMatrix[s]}`).join('\n');
+        
+        let totalTextColumns = beatTimelineLine.length;
         let calculatedFontSize = 14;
-        if (totalTextColumns > 45) calculatedFontSize = 11;
-        if (totalTextColumns > 65) calculatedFontSize = 9;
-        if (totalTextColumns > 85) calculatedFontSize = 8;
+        if (totalTextColumns > 45) calculatedFontSize = 12;
+        if (totalTextColumns > 65) calculatedFontSize = 10;
+        if (totalTextColumns > 85) calculatedFontSize = 8.5;
         
         tabDisplay.style.fontSize = `${calculatedFontSize}px`;
         tabDisplay.innerText = completeTab;
@@ -765,7 +760,6 @@ window.addEventListener('DOMContentLoaded', () => {
     initializeAppLayout();
 });
 
-/* AUTOMATED PRE-FLIGHT DIAGNOSTIC HARNESS */
 function runPreFlightDiagnosticTests() {
     console.log("%c=== RUNNING GUITAR EAR TRAINER RUNTIME TESTS ===", "color: #007aff; font-weight: bold;");
     const strip = document.getElementById('fret-strip');
