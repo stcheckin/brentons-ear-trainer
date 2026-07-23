@@ -32,6 +32,9 @@
         select, input[type="number"], input[type="range"] {
             background-color: #2c2c2e; border: 1px solid #3a3a3c; color: var(--text-main); padding: 8px 12px; border-radius: 6px; outline: none;
         }
+        .computed-value { background-color: #2c2c2e; border: 1px solid #3a3a3c; color: var(--text-muted); padding: 8px 12px; border-radius: 6px; font-weight: 600; }
+        .format-description { min-height: 34px; padding: 8px 4px 0 4px; font-size: 13px; color: var(--text-muted); line-height: 1.4; }
+        select option:disabled { color: #555; }
         .btn-container { display: flex; gap: 10px; margin-top: 15px; }
         button { flex: 1; background-color: var(--accent-color); color: white; border: none; padding: 12px; border-radius: 8px; font-weight: 600; cursor: pointer; }
         button:disabled { background-color: #3a3a3c; color: var(--text-muted); cursor: not-allowed; }
@@ -105,14 +108,38 @@
                 </select>
             </div>
             <div class="control-group">
+                <label>Difficulty</label>
+                <select id="difficulty-select">
+                    <option value="beginner" selected>Beginner</option>
+                    <option value="intermediate">Intermediate</option>
+                </select>
+            </div>
+            <div class="control-group">
+                <label>Exercise Format</label>
+                <select id="format-select">
+                    <option value="riff" selected>Riff (Freeform Phrase)</option>
+                    <option value="ascending_descending">Ascending / Descending</option>
+                    <option value="three_nps">3-Note-Per-String</option>
+                    <option value="thirds">Scalar Sequence — Thirds</option>
+                    <option value="groups_of_four">Groups of 4</option>
+                    <option value="triad_climb">Triad Climb</option>
+                </select>
+            </div>
+            <div class="control-group" id="notes-control-group">
                 <label>Total Notes to Play</label>
                 <input type="number" id="beat-count" min="1" max="16" value="4">
             </div>
+            <div class="control-group" id="computed-notes-group">
+                <label>This Exercise</label>
+                <div id="computed-notes-value" class="computed-value">— notes</div>
+            </div>
             <div class="control-group">
-                <label>Click Track (Riff Mode)</label>
-                <select id="click-track-select">
-                    <option value="off" selected>Off</option>
-                    <option value="on">4-Beat Count-In</option>
+                <label>Max Rhythm Form</label>
+                <select id="rhythm-select">
+                    <option value="4">Quarter Notes</option>
+                    <option value="8">8th Notes</option>
+                    <option value="12">Triplet Notes</option>
+                    <option value="16">16th Notes</option>
                 </select>
             </div>
             <div class="control-group">
@@ -120,6 +147,8 @@
                 <input type="range" id="tempo-range" min="40" max="180" value="100">
             </div>
         </div>
+
+        <div class="format-description" id="format-description"></div>
 
         <div class="setup-selector-container">
             <div class="range-header">
@@ -197,7 +226,7 @@ stringBases.forEach(sb => {
     }
 });
 
-let activeScaleNotes = [], audioCtx = null, currentNote = null, currentRiff = [];
+let activeScaleNotes = [], activeScaleNoteNames = [], audioCtx = null, currentNote = null, currentRiff = [];
 let currentRiffIndex = 0, currentStage = 'idle', analyser = null, micStream = null;
 let sampleBuffer = new Float32Array(2048), consecutiveMatches = 0;
 let isAudioPlaying = false, hasStarted = false, speechRecognizer = null; 
@@ -207,6 +236,16 @@ let activeOscillators = [];
 let firstFretClick = null;
 let minFret = 0;
 let maxFret = 12;
+
+const formatDescriptions = {
+    riff: "A freeform musical phrase built from classic guitar lick shapes — length and rhythm are up to you.",
+    ascending_descending: "Climb the scale from the bottom of your fret range to the top, then walk back down — the most fundamental scale run.",
+    three_nps: "Three-Note-Per-String: a smooth pattern that plays three notes on each string before shifting up the neck — great for building speed and connecting positions.",
+    thirds: "Scalar sequence in thirds: skips every other scale tone (1-3, 2-4, 3-5...) — trains your ear to hear leaps instead of just steps.",
+    groups_of_four: "Groups of 4: a rolling technical sequence (1234, 2345, 3456...) — a classic speed-builder that keeps circling back through the scale.",
+    triad_climb: "Triad Climb: stacks 1-3-5 arpeggios and walks them up the scale one step at a time — trains your ear to hear chord tones, not just scale steps."
+};
+const beginnerFormats = ['riff', 'ascending_descending'];
 
 const startBtn = document.getElementById('start-btn'), listenBtn = document.getElementById('listen-btn'), revealBtn = document.getElementById('reveal-btn');
 const statusDiv = document.getElementById('status'), hintDisplay = document.getElementById('hint-display'), letterDisplay = document.getElementById('letter-display');
@@ -242,6 +281,14 @@ function initializeAppLayout() {
         }
         fretboard.appendChild(strRow);
     });
+
+    document.getElementById('root-select').addEventListener('change', updateFormatUI);
+    document.getElementById('type-select').addEventListener('change', updateFormatUI);
+    document.getElementById('rhythm-select').addEventListener('change', updateFormatUI);
+    document.getElementById('format-select').addEventListener('change', updateFormatUI);
+    document.getElementById('difficulty-select').addEventListener('change', applyDifficultyPreset);
+
+    applyDifficultyPreset();
 }
 
 function handleRangeSelectionClick(fretNum) {
@@ -255,6 +302,7 @@ function handleRangeSelectionClick(fretNum) {
         firstFretClick = null;
     }
     updateStripSelectionHighlights();
+    updateFormatUI();
 }
 
 function updateStripSelectionHighlights() {
@@ -267,6 +315,67 @@ function updateStripSelectionHighlights() {
         }
     });
     document.getElementById('range-label').innerText = `Selected: ${minFret === 0 ? 'Open' : 'Fret ' + minFret} to Fret ${maxFret}`;
+}
+
+// Difficulty is a preset, not a lock: it snaps the other controls to sensible values and
+// narrows (disables, never removes) options that would fight a clean first-time experience.
+// Intermediate simply unlocks everything the app currently supports; there is no Advanced tier.
+function applyDifficultyPreset() {
+    const difficulty = document.getElementById('difficulty-select').value;
+    const typeSelect = document.getElementById('type-select');
+    const rhythmSelect = document.getElementById('rhythm-select');
+    const formatSelect = document.getElementById('format-select');
+    const beatCount = document.getElementById('beat-count');
+
+    if (difficulty === 'beginner') {
+        Array.from(typeSelect.options).forEach(opt => { opt.disabled = !opt.value.includes('pentatonic'); });
+        if (!typeSelect.value.includes('pentatonic')) typeSelect.value = 'minor_pentatonic';
+
+        Array.from(rhythmSelect.options).forEach(opt => { opt.disabled = (opt.value !== '4'); });
+        rhythmSelect.value = '4';
+
+        Array.from(formatSelect.options).forEach(opt => { opt.disabled = !beginnerFormats.includes(opt.value); });
+        if (!beginnerFormats.includes(formatSelect.value)) formatSelect.value = 'riff';
+
+        beatCount.max = 4;
+        if (parseInt(beatCount.value) > 4) beatCount.value = 4;
+
+        minFret = 0; maxFret = 5;
+        updateStripSelectionHighlights();
+    } else {
+        Array.from(typeSelect.options).forEach(opt => { opt.disabled = false; });
+        Array.from(rhythmSelect.options).forEach(opt => { opt.disabled = false; });
+        Array.from(formatSelect.options).forEach(opt => { opt.disabled = false; });
+        beatCount.max = 16;
+    }
+
+    updateFormatUI();
+}
+
+// Reflects the current Exercise Format in the UI: swaps the editable Total Notes input for a
+// read-only computed count on Mode A formats, and refreshes the plain-English one-liner.
+function updateFormatUI() {
+    const format = document.getElementById('format-select').value;
+    const descBox = document.getElementById('format-description');
+    descBox.innerText = formatDescriptions[format] || '';
+
+    const notesGroup = document.getElementById('notes-control-group');
+    const computedGroup = document.getElementById('computed-notes-group');
+
+    if (format === 'riff') {
+        notesGroup.style.visibility = 'visible';
+        computedGroup.style.visibility = 'hidden';
+    } else {
+        notesGroup.style.visibility = 'hidden';
+        computedGroup.style.visibility = 'visible';
+        buildActiveScale();
+        let previewNotes = buildDefinedFormNotes(format);
+        updateComputedNotesDisplay(previewNotes.length);
+    }
+}
+
+function updateComputedNotesDisplay(count) {
+    document.getElementById('computed-notes-value').innerText = `${count} notes`;
 }
 
 tempoRange.addEventListener('input', () => { updateBPMDisplay(parseInt(tempoRange.value)); });
@@ -299,6 +408,7 @@ function buildActiveScale() {
     else if (scaleType === 'minor_pentatonic') steps = [0,3,5,7,10];
 
     let names = steps.map(st => scaleTemplate[(offset + st) % 12]);
+    activeScaleNoteNames = names;
     
     activeScaleNotes = masterNotes.filter(n => names.includes(n.name) && n.fret >= minFret && n.fret <= maxFret);
     
@@ -308,6 +418,102 @@ function buildActiveScale() {
     
     // Explicitly sort notes harmonically to give the interval engine smooth step index tracing
     activeScaleNotes.sort((a, b) => a.freq - b.freq);
+}
+
+// Flattens activeScaleNotes into a single ascending run with one entry per unique pitch —
+// several string/fret combos can produce the same pitch, and the defined exercise forms below
+// want a clean "one note per scale step" run rather than every possible fingering of it.
+function buildScaleRun() {
+    let seen = new Set();
+    let run = [];
+    activeScaleNotes.forEach(n => {
+        let key = n.freq.toFixed(2);
+        if (!seen.has(key)) {
+            seen.add(key);
+            run.push(n);
+        }
+    });
+    return run;
+}
+
+// Classic guitar-lesson 3-Note-Per-String pattern: walk low string to high string, taking the
+// first 3 in-scale frets found at or above a rolling floor, then nudging that floor back down
+// two frets for the next string so the shape connects smoothly across the neck.
+function buildThreeNPS() {
+    const stringOrder = ['E', 'A', 'D', 'G', 'B', 'e']; // low pitch to high pitch
+    let result = [];
+    let fretFloor = minFret;
+    stringOrder.forEach(stringLabel => {
+        let candidates = masterNotes
+            .filter(n => n.string === stringLabel && n.fret >= fretFloor && n.fret <= maxFret && activeScaleNoteNames.includes(n.name))
+            .sort((a, b) => a.fret - b.fret);
+        let picked = candidates.slice(0, 3);
+        if (picked.length > 0) {
+            result = result.concat(picked);
+            fretFloor = Math.max(minFret, picked[picked.length - 1].fret - 2);
+        }
+    });
+    return result;
+}
+
+// Mode A dispatcher: turns a defined Exercise Format into a flat note array (no rhythm/grid
+// fields yet — assignRhythmGrid attaches those afterward so playback/notation stay untouched).
+function buildDefinedFormNotes(format) {
+    if (format === 'ascending_descending') {
+        let run = buildScaleRun();
+        if (run.length < 2) return run;
+        let descending = run.slice(0, run.length - 1).reverse();
+        return run.concat(descending);
+    }
+    if (format === 'three_nps') {
+        let nps = buildThreeNPS();
+        return nps.length > 0 ? nps : buildScaleRun();
+    }
+    if (format === 'thirds') {
+        let run = buildScaleRun();
+        let seq = [];
+        for (let i = 0; i + 2 < run.length; i++) seq.push(run[i], run[i + 2]);
+        return seq.length > 0 ? seq : run;
+    }
+    if (format === 'groups_of_four') {
+        let run = buildScaleRun();
+        let seq = [];
+        for (let i = 0; i + 3 < run.length; i++) seq.push(run[i], run[i + 1], run[i + 2], run[i + 3]);
+        return seq.length > 0 ? seq : run;
+    }
+    if (format === 'triad_climb') {
+        let run = buildScaleRun();
+        let seq = [];
+        for (let i = 0; i + 4 < run.length; i++) seq.push(run[i], run[i + 2], run[i + 4]);
+        return seq.length > 0 ? seq : run;
+    }
+    return buildScaleRun();
+}
+
+// Places a flat Mode A note array sequentially onto the same beatIndex/subDivIndex grid the
+// Riff engine uses, straight through with no downbeat/offbeat randomization — these are
+// technical patterns meant to be played evenly, not composed licks. Reuses the existing
+// playback and tab-rendering engines unchanged (Mandate 6).
+function assignRhythmGrid(notes, maxRhythm) {
+    let subdivisionsPerBeat = 1;
+    if (maxRhythm === 8) subdivisionsPerBeat = 2;
+    if (maxRhythm === 12) subdivisionsPerBeat = 3;
+    if (maxRhythm === 16) subdivisionsPerBeat = 4;
+
+    totalBarsCalculated = Math.max(1, Math.ceil(notes.length / (subdivisionsPerBeat * 4)));
+
+    return notes.map((note, i) => {
+        let beatIndex = Math.floor(i / subdivisionsPerBeat);
+        let subDivIndex = i % subdivisionsPerBeat;
+        return {
+            ...note,
+            rhythmType: maxRhythm,
+            beatIndex: beatIndex,
+            subDivIndex: subDivIndex,
+            isDownbeat: subDivIndex === 0,
+            isPhraseFinal: i === notes.length - 1
+        };
+    });
 }
 
 // Composed phrase-shape engine: instead of a memoryless per-note random walk, pick one
@@ -402,10 +608,29 @@ function nextExercise() {
     tabDisplay.style.display = 'none';
     document.querySelectorAll('.note-marker').forEach(m => { m.style.display = 'none'; m.innerText = ''; });
 
+    const format = document.getElementById('format-select').value;
     const totalNotesRequested = parseInt(document.getElementById('beat-count').value);
-    // Rhythm is always locked to quarter notes (on the beat) — Max Rhythm control removed for simplicity.
-    const maxRhythm = 4;
-    
+    const maxRhythm = parseInt(document.getElementById('rhythm-select').value);
+
+    if (format !== 'riff') {
+        // MODE A: Defined Exercise Form — note count is derived, not chosen.
+        startBtn.innerText = "Next Exercise";
+        currentNote = null;
+        let formNotes = buildDefinedFormNotes(format);
+        if (formNotes.length === 0) formNotes = [{ ...activeScaleNotes[0] }];
+        currentRiff = assignRhythmGrid(formNotes, maxRhythm);
+        updateComputedNotesDisplay(formNotes.length);
+
+        currentRiffIndex = 0;
+        currentStage = 'riff_tracking';
+        statusDiv.innerHTML = `<span class="stage-active">Lock into this groove...</span> Play it back note-by-note!`;
+
+        listenBtn.disabled = false;
+        revealBtn.disabled = false;
+        playCurrentAudio();
+        return;
+    }
+
     if (totalNotesRequested === 1) {
         startBtn.innerText = "Next Note";
         currentRiff = [];
@@ -503,21 +728,6 @@ function playCurrentAudio() {
     const beatDuration = 60 / bpm;
     const now = audioCtx.currentTime;
 
-    // Natural 4-beat count-in: only applies in Riff mode, and only when the student has
-    // opted into the Click Track. Fires on every play — initial exercise and every replay.
-    const clickTrackEnabled = document.getElementById('click-track-select').value === 'on';
-    const countInBeats = (currentRiff.length > 0 && clickTrackEnabled) ? 4 : 0;
-    const countInDuration = countInBeats * beatDuration;
-
-    if (countInBeats > 0) {
-        const preCountInStatusHTML = statusDiv.innerHTML;
-        statusDiv.innerHTML = `<span class="stage-active">Count it in...</span> 1, 2, 3, 4 — here we go!`;
-        for (let c = 0; c < countInBeats; c++) {
-            playClickTone(now + (c * beatDuration), c === 0);
-        }
-        setTimeout(() => { statusDiv.innerHTML = preCountInStatusHTML; }, countInDuration * 1000);
-    }
-
     if (currentNote) {
         playGuitarTonePatch(currentNote.freq, now, beatDuration * 0.85, { accent: true, sustainTail: true });
         setTimeout(() => { isAudioPlaying = false; }, beatDuration * 1000 + 100);
@@ -530,7 +740,7 @@ function playCurrentAudio() {
         
         currentRiff.forEach((note, i) => {
             let noteDuration = beatDuration / subdivisionsPerBeat;
-            let gridStart = now + countInDuration + (note.beatIndex * beatDuration) + (note.subDivIndex * noteDuration);
+            let gridStart = now + (note.beatIndex * beatDuration) + (note.subDivIndex * noteDuration);
 
             // A touch of swing on the offbeat 8th so straight subdivisions don't sound sequenced
             let swingOffset = 0;
@@ -565,27 +775,6 @@ function playCurrentAudio() {
     }
 }
 
-// Simple metronome click used for the 4-beat count-in. Deliberately distinct from the
-// guitar tone patch (short percussive blip, no sustain) so it reads as a click, not a note.
-function playClickTone(start, accent) {
-    const osc = audioCtx.createOscillator();
-    const gainNode = audioCtx.createGain();
- 
-    osc.type = 'square';
-    osc.frequency.setValueAtTime(accent ? 1600 : 1000, start);
- 
-    gainNode.gain.setValueAtTime(0, start);
-    gainNode.gain.linearRampToValueAtTime(accent ? 0.35 : 0.22, start + 0.002);
-    gainNode.gain.exponentialRampToValueAtTime(0.0001, start + 0.05);
- 
-    osc.connect(gainNode);
-    gainNode.connect(audioCtx.destination);
- 
-    activeOscillators.push(osc);
-    osc.start(start);
-    osc.stop(start + 0.06);
-}
- 
 function playGuitarTonePatch(freq, start, duration, options) {
     options = options || {};
     // Structural Node Synthesis System simulating a physical guitar pluck & string body resonance
