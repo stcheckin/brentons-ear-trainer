@@ -109,12 +109,10 @@
                 <input type="number" id="beat-count" min="1" max="16" value="4">
             </div>
             <div class="control-group">
-                <label>Max Rhythm Form</label>
-                <select id="rhythm-select">
-                    <option value="4">Quarter Notes</option>
-                    <option value="8">8th Notes</option>
-                    <option value="12">Triplet Notes</option>
-                    <option value="16">16th Notes</option>
+                <label>Click Track (Riff Mode)</label>
+                <select id="click-track-select">
+                    <option value="off" selected>Off</option>
+                    <option value="on">4-Beat Count-In</option>
                 </select>
             </div>
             <div class="control-group">
@@ -405,7 +403,8 @@ function nextExercise() {
     document.querySelectorAll('.note-marker').forEach(m => { m.style.display = 'none'; m.innerText = ''; });
 
     const totalNotesRequested = parseInt(document.getElementById('beat-count').value);
-    const maxRhythm = parseInt(document.getElementById('rhythm-select').value);
+    // Rhythm is always locked to quarter notes (on the beat) — Max Rhythm control removed for simplicity.
+    const maxRhythm = 4;
     
     if (totalNotesRequested === 1) {
         startBtn.innerText = "Next Note";
@@ -504,6 +503,21 @@ function playCurrentAudio() {
     const beatDuration = 60 / bpm;
     const now = audioCtx.currentTime;
 
+    // Natural 4-beat count-in: only applies in Riff mode, and only when the student has
+    // opted into the Click Track. Fires on every play — initial exercise and every replay.
+    const clickTrackEnabled = document.getElementById('click-track-select').value === 'on';
+    const countInBeats = (currentRiff.length > 0 && clickTrackEnabled) ? 4 : 0;
+    const countInDuration = countInBeats * beatDuration;
+
+    if (countInBeats > 0) {
+        const preCountInStatusHTML = statusDiv.innerHTML;
+        statusDiv.innerHTML = `<span class="stage-active">Count it in...</span> 1, 2, 3, 4 — here we go!`;
+        for (let c = 0; c < countInBeats; c++) {
+            playClickTone(now + (c * beatDuration), c === 0);
+        }
+        setTimeout(() => { statusDiv.innerHTML = preCountInStatusHTML; }, countInDuration * 1000);
+    }
+
     if (currentNote) {
         playGuitarTonePatch(currentNote.freq, now, beatDuration * 0.85, { accent: true, sustainTail: true });
         setTimeout(() => { isAudioPlaying = false; }, beatDuration * 1000 + 100);
@@ -516,7 +530,7 @@ function playCurrentAudio() {
         
         currentRiff.forEach((note, i) => {
             let noteDuration = beatDuration / subdivisionsPerBeat;
-            let gridStart = now + (note.beatIndex * beatDuration) + (note.subDivIndex * noteDuration);
+            let gridStart = now + countInDuration + (note.beatIndex * beatDuration) + (note.subDivIndex * noteDuration);
 
             // A touch of swing on the offbeat 8th so straight subdivisions don't sound sequenced
             let swingOffset = 0;
@@ -551,6 +565,27 @@ function playCurrentAudio() {
     }
 }
 
+// Simple metronome click used for the 4-beat count-in. Deliberately distinct from the
+// guitar tone patch (short percussive blip, no sustain) so it reads as a click, not a note.
+function playClickTone(start, accent) {
+    const osc = audioCtx.createOscillator();
+    const gainNode = audioCtx.createGain();
+ 
+    osc.type = 'square';
+    osc.frequency.setValueAtTime(accent ? 1600 : 1000, start);
+ 
+    gainNode.gain.setValueAtTime(0, start);
+    gainNode.gain.linearRampToValueAtTime(accent ? 0.35 : 0.22, start + 0.002);
+    gainNode.gain.exponentialRampToValueAtTime(0.0001, start + 0.05);
+ 
+    osc.connect(gainNode);
+    gainNode.connect(audioCtx.destination);
+ 
+    activeOscillators.push(osc);
+    osc.start(start);
+    osc.stop(start + 0.06);
+}
+ 
 function playGuitarTonePatch(freq, start, duration, options) {
     options = options || {};
     // Structural Node Synthesis System simulating a physical guitar pluck & string body resonance
