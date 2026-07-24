@@ -1,6 +1,8 @@
+
+#### File 2: README.md
 # Brenton's Guitar Ear Trainer — User & Technical Manual
 
-Welcome to **Brenton's Guitar Ear Trainer**, a standalone interactive environment explicitly engineered to bridge functional pitch training with native guitar visualizations[cite: 1]. The system generates context-aware, scale-correct intervals and tracks your microphone input in real-time, matching standard pitch configurations against standard notation systems and guitar tablature formatting[cite: 1].
+Welcome to **Brenton's Guitar Ear Trainer**, a standalone interactive environment explicitly engineered to bridge functional pitch training with native guitar visualizations. The system generates context-aware, scale-correct intervals and tracks your microphone input in real-time, matching standard pitch configurations against standard notation systems and guitar tablature formatting.
 
 ---
 
@@ -10,7 +12,8 @@ Welcome to **Brenton's Guitar Ear Trainer**, a standalone interactive environmen
 Before launching an exercise session, customize the problem space constraints via the top dashboard pane[cite: 1]:
 * **Root Key & Scale Type:** Establish the harmonic center (e.g., E Minor Pentatonic or C Major)[cite: 1]. The engine calculates exact relative frequencies instead of pulling arbitrary pitch loops[cite: 1].
 * **Total Notes to Play:** Set this value to `1` to run **Single Note Target Training**[cite: 1]. Set it to `2` or higher (up to `16`) to dynamically swap the system into **Multi-Note Riff Mode**[cite: 1].
-* **Max Rhythm Form:** Dictates the micro-timing grid constraint[cite: 1]. Choosing *Quarter Notes* locks generated targets strictly onto downbeats[cite: 1]. Moving to *8th Notes*, *Triplet Notes*, or *16th Notes* commands the mathematical model to scatter notes across authentic offbeat slots, keeping the primary downbeat pulse as the core anchor line[cite: 1].
+* **Rhythm:** All exercises play strictly on the beat (quarter notes), keeping the timing simple and locked to the downbeat pulse.
+* **Click Track:** In Multi-Note Riff Mode, switch this to *4-Beat Count-In* to hear a natural musician's count-in ("1, 2, 3, 4") on the metronome click before the riff plays. It replays before every listen, including "Play Again." Leave it *Off* for no count-in. This option has no effect in Single Note mode.
 * **Tempo Controls:** Drag the slider or dial the parameters between 40 BPM and 180 BPM to determine playback speed[cite: 1].
 
 ### 2. Isolate the Fretboard Focus Range
@@ -20,7 +23,7 @@ Before launching an exercise session, customize the problem space constraints vi
 
 ### 3. Execution & Training Interaction Loop
 1. Click **Start Session**[cite: 1]. This will invoke your browser's Web Audio Context permissions window[cite: 1]. Grant access to your microphone device[cite: 1].
-2. The trainer instantly processes a scale-correct musical sequence, sounding the prompt using a structural node synthesis patch that models real acoustic string attack, pluck presence, and body resonance.
+2. The trainer instantly processes a scale-correct musical sequence, sounding the prompt using a dual-oscillator acoustic synth framework[cite: 1].
 3. **Analyze & Play Back:** 
    * Hum, sing, or strike your physical guitar strings into your microphone[cite: 1]. 
    * The system samples your output through a native autocorrelation pitch-tracker[cite: 1].
@@ -32,7 +35,7 @@ Before launching an exercise session, customize the problem space constraints vi
 When you struggle with an exercise or clear the phase, click **Reveal Answer** to deploy the visualization engines[cite: 1]:
 * **The Standard Notation Canvas:** Standard rendering vectors draw a traditional 5-line musical staff layout[cite: 1]. The Treble G-Clef glyph (`𝄞`) sits accurately on the baseline grid, looping its inner core exactly around the second line from the bottom (G4 line)[cite: 1]. Sharp accidentals (`♯`) and custom overhead/under-hanging ledger lines align naturally beside note heads following strict engraving standards (transposed up one octave for native guitar representation)[cite: 1].
 * **The Interactive Fretboard Map:** If you are testing a single note, an explicit red marker pops up over the target string matrix, displaying the precise location of the fret to finger[cite: 1].
-* **The Grid-Aligned Tablature System:** In Multi-Note Riff Mode, the app drops a standard 6-line textual ASCII tab string[cite: 1]. Sub-beat timeline markers (`1`, `e`, `+`, `a`) sit anchored directly above the note columns with perfect character-by-character structural padding alignment, ensuring absolute readability[cite: 1].
+* **The Grid-Aligned Tablature System:** In Multi-Note Riff Mode, the app drops a standard 6-line textual ASCII tab string[cite: 1]. Beat timeline markers (`1`, `2`, `3`, `4`) sit anchored directly above the note columns with perfect character-by-character structural padding alignment, ensuring absolute readability[cite: 1].
 
 ---
 

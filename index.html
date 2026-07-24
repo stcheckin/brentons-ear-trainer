@@ -109,12 +109,10 @@
                 <input type="number" id="beat-count" min="1" max="16" value="4">
             </div>
             <div class="control-group">
-                <label>Max Rhythm Form</label>
-                <select id="rhythm-select">
-                    <option value="4">Quarter Notes</option>
-                    <option value="8">8th Notes</option>
-                    <option value="12">Triplet Notes</option>
-                    <option value="16">16th Notes</option>
+                <label>Click Track (Riff Mode)</label>
+                <select id="click-track-select">
+                    <option value="off" selected>Off</option>
+                    <option value="on">4-Beat Count-In</option>
                 </select>
             </div>
             <div class="control-group">
@@ -312,6 +310,73 @@ function buildActiveScale() {
     activeScaleNotes.sort((a, b) => a.freq - b.freq);
 }
 
+// Composed phrase-shape engine: instead of a memoryless per-note random walk, pick one
+// classic lick archetype for the whole phrase and let it drive the contour. This is what
+// gives riffs a sense of direction and repetition instead of sounding like scattered dice rolls.
+function generatePhraseDegrees(n, poolLen, rootIdx) {
+    const clamp = (v) => Math.max(0, Math.min(poolLen - 1, v));
+    if (n <= 1) return [rootIdx];
+    if (n === 2) {
+        // A short pickup note leading into the resolution, rather than two identical notes
+        return [clamp(rootIdx + (Math.random() > 0.5 ? 1 : -1)), rootIdx];
+    }
+
+    const archetypes = ['climb_resolve', 'descend_resolve', 'call_response', 'arpeggio_skip', 'turn_neighbor'];
+    const archetype = archetypes[Math.floor(Math.random() * archetypes.length)];
+    let degrees = [];
+
+    if (archetype === 'climb_resolve' || archetype === 'descend_resolve') {
+        // Ascending (or descending) run that peaks partway through, like a classic pentatonic run
+        let direction = archetype === 'climb_resolve' ? 1 : -1;
+        let reach = Math.min(4, n - 1);
+        let peak = clamp(rootIdx + direction * reach);
+        for (let i = 0; i < n; i++) {
+            let t = i / (n - 1);
+            degrees.push(clamp(Math.round(rootIdx + t * (peak - rootIdx))));
+        }
+    } else if (archetype === 'arpeggio_skip') {
+        // Leap outward through arpeggio-style thirds, then stepwise fill back home
+        let dir = Math.random() > 0.5 ? 1 : -1;
+        let half = Math.ceil(n / 2);
+        for (let i = 0; i < n; i++) {
+            if (i < half) {
+                degrees.push(clamp(rootIdx + dir * 2 * i));
+            } else {
+                degrees.push(clamp(rootIdx + dir * 2 * (n - 1 - i)));
+            }
+        }
+    } else if (archetype === 'call_response') {
+        // A short melodic cell, then an answering cell transposed up or down (classic call & response)
+        let cellLen = Math.max(1, Math.floor(n / 2));
+        let cell = [];
+        let cursor = rootIdx;
+        for (let i = 0; i < cellLen; i++) {
+            cell.push(clamp(cursor));
+            cursor += (i % 2 === 0 ? 1 : -1) * (Math.random() > 0.6 ? 2 : 1);
+        }
+        let transpose = Math.random() > 0.5 ? 1 : -1;
+        degrees = cell.concat(cell.map(d => clamp(d + transpose)));
+        while (degrees.length < n) degrees.push(rootIdx);
+        degrees = degrees.slice(0, n);
+    } else {
+        // turn_neighbor: stays close to home with neighbor-tone motion, like a classic blues turn
+        for (let i = 0; i < n; i++) {
+            degrees.push(i % 2 === 0 ? rootIdx : clamp(rootIdx + (Math.random() > 0.5 ? 1 : -1)));
+        }
+    }
+
+    // A little human imprecision so the same archetype never plays back exactly the same way twice
+    for (let i = 1; i < n - 1; i++) {
+        if (Math.random() < 0.12) degrees[i] = clamp(degrees[i] + (Math.random() > 0.5 ? 1 : -1));
+    }
+
+    // Real licks lean into the resolution — approach the final root by step, don't just jump to it
+    degrees[n - 2] = clamp(rootIdx + (Math.random() > 0.5 ? 1 : -1));
+    degrees[n - 1] = rootIdx;
+
+    return degrees;
+}
+
 startBtn.addEventListener('click', () => {
     buildActiveScale();
     if (!audioCtx) {
@@ -338,7 +403,8 @@ function nextExercise() {
     document.querySelectorAll('.note-marker').forEach(m => { m.style.display = 'none'; m.innerText = ''; });
 
     const totalNotesRequested = parseInt(document.getElementById('beat-count').value);
-    const maxRhythm = parseInt(document.getElementById('rhythm-select').value);
+    // Rhythm is always locked to quarter notes (on the beat) — Max Rhythm control removed for simplicity.
+    const maxRhythm = 4;
     
     if (totalNotesRequested === 1) {
         startBtn.innerText = "Next Note";
@@ -347,6 +413,8 @@ function nextExercise() {
         currentNote.rhythmType = 4;
         currentNote.beatIndex = 0;
         currentNote.subDivIndex = 0;
+        currentNote.isDownbeat = true;
+        currentNote.isPhraseFinal = true;
         currentStage = 'singing';
         statusDiv.innerHTML = `<span class="stage-active">Catch this pulse...</span> Sing it, play it, or call it out!`;
     } else {
@@ -396,39 +464,24 @@ function nextExercise() {
         }
         chosenSlots.sort((a, b) => a - b);
 
-        // Target authentic guitar phrases: Choose an expressive framework anchor point
-        let currentScaleIdx = Math.floor(Math.random() * activeScaleNotes.length);
-        let targetRootIdx = currentScaleIdx;
+        // Target authentic guitar phrases: anchor to a harmonic home base, then let the
+        // phrase-archetype engine compose the full contour around it in one pass
+        let targetRootIdx = Math.floor(Math.random() * activeScaleNotes.length);
+        let phraseDegrees = generatePhraseDegrees(chosenSlots.length, activeScaleNotes.length, targetRootIdx);
 
         chosenSlots.forEach((slotIndex, i) => {
             let totalSubdivIndex = slotIndex;
             let beatIndex = Math.floor(totalSubdivIndex / subdivisionsPerBeat);
             let subDivIndex = totalSubdivIndex % subdivisionsPerBeat;
-
-            if (i > 0) {
-                let roll = Math.random();
-                // Authentic guitar phrasing matrix transitions: 
-                // 60% Stepwise motion, 25% Thirds/Fourths intervals, 15% Pentatonic box jumps/Resolutions
-                if (roll < 0.60) {
-                    let step = Math.random() > 0.5 ? 1 : -1;
-                    currentScaleIdx = Math.max(0, Math.min(activeScaleNotes.length - 1, currentScaleIdx + step));
-                } else if (roll < 0.85) {
-                    let jump = Math.random() > 0.5 ? 2 : -2;
-                    currentScaleIdx = Math.max(0, Math.min(activeScaleNotes.length - 1, currentScaleIdx + jump));
-                } else {
-                    currentScaleIdx = targetRootIdx; 
-                }
-            }
-
-            // Always resolve final licks cleanly to the harmonic home root or dominant note
-            if (i === chosenSlots.length - 1 && chosenSlots.length > 1) {
-                currentScaleIdx = targetRootIdx;
-            }
+            let currentScaleIdx = phraseDegrees[i];
 
             let noteCopy = { ...activeScaleNotes[currentScaleIdx] };
             noteCopy.rhythmType = maxRhythm;
             noteCopy.beatIndex = beatIndex;
             noteCopy.subDivIndex = subDivIndex;
+            // Flag strong metric position + phrase-final note so playback can accent/sustain expressively
+            noteCopy.isDownbeat = (subDivIndex === 0);
+            noteCopy.isPhraseFinal = (i === chosenSlots.length - 1);
             currentRiff.push(noteCopy);
         });
         
@@ -450,8 +503,23 @@ function playCurrentAudio() {
     const beatDuration = 60 / bpm;
     const now = audioCtx.currentTime;
 
+    // Natural 4-beat count-in: only applies in Riff mode, and only when the student has
+    // opted into the Click Track. Fires on every play — initial exercise and every replay.
+    const clickTrackEnabled = document.getElementById('click-track-select').value === 'on';
+    const countInBeats = (currentRiff.length > 0 && clickTrackEnabled) ? 4 : 0;
+    const countInDuration = countInBeats * beatDuration;
+
+    if (countInBeats > 0) {
+        const preCountInStatusHTML = statusDiv.innerHTML;
+        statusDiv.innerHTML = `<span class="stage-active">Count it in...</span> 1, 2, 3, 4 — here we go!`;
+        for (let c = 0; c < countInBeats; c++) {
+            playClickTone(now + (c * beatDuration), c === 0);
+        }
+        setTimeout(() => { statusDiv.innerHTML = preCountInStatusHTML; }, countInDuration * 1000);
+    }
+
     if (currentNote) {
-        playGuitarTonePatch(currentNote.freq, now, beatDuration * 0.85);
+        playGuitarTonePatch(currentNote.freq, now, beatDuration * 0.85, { accent: true, sustainTail: true });
         setTimeout(() => { isAudioPlaying = false; }, beatDuration * 1000 + 100);
     } else if (currentRiff.length > 0) {
         let totalPlayTime = 0;
@@ -460,19 +528,66 @@ function playCurrentAudio() {
         else if (currentRiff[0].rhythmType === 12) subdivisionsPerBeat = 3;
         else if (currentRiff[0].rhythmType === 8) subdivisionsPerBeat = 2;
         
-        currentRiff.forEach((note) => {
+        currentRiff.forEach((note, i) => {
             let noteDuration = beatDuration / subdivisionsPerBeat;
-            let startTime = now + (note.beatIndex * beatDuration) + (note.subDivIndex * noteDuration);
-            
-            playGuitarTonePatch(note.freq, startTime, noteDuration * 0.95);
-            totalPlayTime = Math.max(totalPlayTime, (startTime - now) + noteDuration);
+            let gridStart = now + countInDuration + (note.beatIndex * beatDuration) + (note.subDivIndex * noteDuration);
+
+            // A touch of swing on the offbeat 8th so straight subdivisions don't sound sequenced
+            let swingOffset = 0;
+            if (subdivisionsPerBeat === 2 && note.subDivIndex === 1) {
+                swingOffset = noteDuration * 0.12;
+            }
+
+            // A hair of human micro-timing so notes don't land with machine-perfect quantization.
+            // This only nudges the audible pluck — the beatIndex/subDivIndex grid used for the
+            // tab/notation output and for pitch-matching scoring is never touched.
+            let humanizeOffset = (Math.random() - 0.5) * Math.min(0.018, noteDuration * 0.08);
+            let startTime = gridStart + swingOffset + humanizeOffset;
+
+            // Stepwise neighbors get a touch of legato overlap (implies a hammer-on/slide);
+            // the phrase's final note is allowed to ring out a little longer instead of being cut
+            let playedDuration = noteDuration * 0.95;
+            if (note.isPhraseFinal) {
+                playedDuration = noteDuration * 1.4;
+            } else if (i > 0 && Math.abs(note.freq - currentRiff[i - 1].freq) < 40) {
+                playedDuration = noteDuration * 1.08;
+            }
+
+            playGuitarTonePatch(note.freq, startTime, playedDuration, {
+                accent: note.isDownbeat,
+                sustainTail: note.isPhraseFinal
+            });
+
+            totalPlayTime = Math.max(totalPlayTime, (gridStart - now) + noteDuration);
         });
         
-        setTimeout(() => { isAudioPlaying = false; }, (totalPlayTime * 1000) + 100);
+        setTimeout(() => { isAudioPlaying = false; }, (totalPlayTime * 1000) + 150);
     }
 }
 
-function playGuitarTonePatch(freq, start, duration) {
+// Simple metronome click used for the 4-beat count-in. Deliberately distinct from the
+// guitar tone patch (short percussive blip, no sustain) so it reads as a click, not a note.
+function playClickTone(start, accent) {
+    const osc = audioCtx.createOscillator();
+    const gainNode = audioCtx.createGain();
+ 
+    osc.type = 'square';
+    osc.frequency.setValueAtTime(accent ? 1600 : 1000, start);
+ 
+    gainNode.gain.setValueAtTime(0, start);
+    gainNode.gain.linearRampToValueAtTime(accent ? 0.35 : 0.22, start + 0.002);
+    gainNode.gain.exponentialRampToValueAtTime(0.0001, start + 0.05);
+ 
+    osc.connect(gainNode);
+    gainNode.connect(audioCtx.destination);
+ 
+    activeOscillators.push(osc);
+    osc.start(start);
+    osc.stop(start + 0.06);
+}
+ 
+function playGuitarTonePatch(freq, start, duration, options) {
+    options = options || {};
     // Structural Node Synthesis System simulating a physical guitar pluck & string body resonance
     const oscBody = audioCtx.createOscillator();
     const oscBite = audioCtx.createOscillator();
@@ -480,30 +595,40 @@ function playGuitarTonePatch(freq, start, duration) {
     
     const gainNode = audioCtx.createGain();
     const filterNode = audioCtx.createBiquadFilter();
+
+    // Tiny natural pitch variance per pluck — no two real strums land at the exact same cent.
+    // This only colors the audible tone; the frequency used for pitch-matching scoring is untouched.
+    const humanDetune = 1 + ((Math.random() - 0.5) * 0.006);
+    const playFreq = freq * humanDetune;
     
     // Warm, woody resonance base layer
     oscBody.type = 'triangle';
-    oscBody.frequency.setValueAtTime(freq, start);
+    oscBody.frequency.setValueAtTime(playFreq, start);
     
     // Native string pluck bite and overtone presence
     oscBite.type = 'sawtooth';
-    oscBite.frequency.setValueAtTime(freq * 2, start);
+    oscBite.frequency.setValueAtTime(playFreq * 2, start);
     
     // Sub-harmonic depth replicating structural instrument cabinet resonance
     oscWarmth.type = 'sine';
-    oscWarmth.frequency.setValueAtTime(freq * 0.5, start);
+    oscWarmth.frequency.setValueAtTime(playFreq * 0.5, start);
 
-    // High frequency string-pluck decay envelope simulation
+    // High frequency string-pluck decay envelope simulation; accented notes ring a touch brighter
     filterNode.type = 'lowpass';
     filterNode.Q.setValueAtTime(4, start);
-    filterNode.frequency.setValueAtTime(2200, start);
+    filterNode.frequency.setValueAtTime(options.accent ? 2600 : 2200, start);
     filterNode.frequency.exponentialRampToValueAtTime(350, start + 0.12);
 
-    // Precise physical volume envelope modeling rapid initial pluck attack and long decay
+    // Precise physical volume envelope modeling rapid initial pluck attack and long decay.
+    // Downbeats/phrase anchors get a slightly stronger pluck, like a player naturally accenting
+    // the pulse, plus a whisper of random velocity variance so consecutive notes aren't identically loud.
+    let peakGain = (options.accent ? 0.4 : 0.32) * (1 + (Math.random() - 0.5) * 0.08);
+    let sustainLevel = options.sustainTail ? 0.1 : 0.08;
+
     gainNode.gain.setValueAtTime(0, start);
-    gainNode.gain.linearRampToValueAtTime(0.35, start + 0.004); // Instant clean pluck attack
-    gainNode.gain.exponentialRampToValueAtTime(0.18, start + 0.05); // Rapid primary string settlement
-    gainNode.gain.linearRampToValueAtTime(0.08, start + duration * 0.4); // Ringing sustain block
+    gainNode.gain.linearRampToValueAtTime(peakGain, start + 0.004); // Instant clean pluck attack
+    gainNode.gain.exponentialRampToValueAtTime(peakGain * 0.5, start + 0.05); // Rapid primary string settlement
+    gainNode.gain.linearRampToValueAtTime(sustainLevel, start + duration * 0.4); // Ringing sustain block
     gainNode.gain.exponentialRampToValueAtTime(0.0001, start + duration); // Smooth physical tail decay
 
     oscBody.connect(filterNode);
