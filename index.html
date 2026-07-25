@@ -79,6 +79,15 @@
         <h2>Brenton's Guitar Ear Trainer</h2>
         <div class="controls-grid">
             <div class="control-group">
+                <label>Exercise Type</label>
+                <select id="exercise-type-select">
+                    <option value="musical_phrase" selected>Musical Phrase</option>
+                    <option value="scale_run">Scale Run (Linear)</option>
+                    <option value="three_nps">3 Notes Per String</option>
+                    <option value="scale_sequence">Scale Sequence</option>
+                </select>
+            </div>
+            <div class="control-group">
                 <label>Root Key</label>
                 <select id="root-select">
                     <option value="C">C</option>
@@ -105,7 +114,7 @@
                 </select>
             </div>
             <div class="control-group">
-                <label>Total Notes to Play</label>
+                <label id="beat-count-label">Total Notes to Play</label>
                 <input type="number" id="beat-count" min="1" max="16" value="4">
             </div>
             <div class="control-group">
@@ -120,6 +129,8 @@
                 <input type="range" id="tempo-range" min="40" max="180" value="100">
             </div>
         </div>
+
+        <div id="exercise-explainer" style="font-size:13px; color:var(--text-muted); line-height:1.4; margin-top:-5px; margin-bottom:15px;"></div>
 
         <div class="setup-selector-container">
             <div class="range-header">
@@ -214,7 +225,88 @@ const fretboardWrapper = document.getElementById('fretboard-wrapper'), tabDispla
 const notationContainer = document.getElementById('notation-container'), notationSvg = document.getElementById('notation-svg');
 const fretboard = document.getElementById('fretboard'), fretStrip = document.getElementById('fret-strip');
 
+const EXERCISE_INFO = {
+    musical_phrase: "Random musical-style riffs and licks within the scale \u2014 call-and-response, arpeggios, and classic melodic shapes.",
+    scale_run: "A straight run up or down the scale, starting from a random point \u2014 trains you to recognise exactly where you are within the scale shape.",
+    three_nps: "Three notes per string \u2014 the classic technique-building pattern guitarists drill every day. Each exercise is one string; hit Next for a new random string.",
+    scale_sequence: "Groups of scale notes that shift up by one note each round \u2014 e.g. with a group size of 4: 1-2-3-4, then 2-3-4-5, then 3-4-5-6. Set the group size below. Builds finger independence and scale fluency."
+};
+
+function updateExerciseUI() {
+    const type = document.getElementById('exercise-type-select').value;
+    document.getElementById('exercise-explainer').innerText = EXERCISE_INFO[type] || '';
+
+    const beatInput = document.getElementById('beat-count');
+    const beatLabel = document.getElementById('beat-count-label');
+    if (type === 'three_nps') {
+        beatInput.value = 3;
+        beatInput.disabled = true;
+        beatLabel.innerText = 'Total Notes to Play';
+    } else if (type === 'scale_sequence') {
+        if (beatInput.disabled) beatInput.value = 4;
+        beatInput.disabled = false;
+        beatLabel.innerText = 'Group Size';
+    } else {
+        beatInput.disabled = false;
+        beatLabel.innerText = 'Total Notes to Play';
+    }
+}
+document.getElementById('exercise-type-select').addEventListener('change', updateExerciseUI);
+
+// Groups the in-range scale pool by string and hands back one random string's worth of
+// 3 consecutive in-range notes (fret-ascending) \u2014 the classic "3 notes per string" chunk.
+function pickThreeNotesPerStringPool() {
+    let byString = {};
+    activeScaleNotes.forEach(n => {
+        if (!byString[n.string]) byString[n.string] = [];
+        byString[n.string].push(n);
+    });
+    Object.keys(byString).forEach(s => byString[s].sort((a, b) => a.fret - b.fret));
+
+    let eligibleStrings = Object.keys(byString).filter(s => byString[s].length >= 3);
+    if (eligibleStrings.length === 0) {
+        // Fretboard range too narrow to find 3 in-range notes on any single string
+        return [];
+    }
+    let chosenString = eligibleStrings[Math.floor(Math.random() * eligibleStrings.length)];
+    let stringNotes = byString[chosenString];
+    let maxStart = stringNotes.length - 3;
+    let start = Math.floor(Math.random() * (maxStart + 1));
+    return stringNotes.slice(start, start + 3);
+}
+
+// Slides an n-note window over the pooled/sorted scale pool, starting from a random point —
+// e.g. with n=4: degrees 1-2-3-4, or 3-4-5-6, picked fresh each time rather than always starting at 1.
+function pickScaleSequencePool(n) {
+    if (activeScaleNotes.length < n) return activeScaleNotes.slice();
+    let maxStart = activeScaleNotes.length - n;
+    let start = Math.floor(Math.random() * (maxStart + 1));
+    return activeScaleNotes.slice(start, start + n);
+}
+
+// A straight ascending or descending run of n notes through the pooled/sorted scale pool,
+// starting from a random position each time so students learn to find themselves anywhere
+// in the scale, not just always from the root.
+function pickScaleRunPool(n, direction) {
+    const poolLen = activeScaleNotes.length;
+    n = Math.min(n, poolLen);
+    if (n <= 0) return [];
+    let degrees = [];
+    if (direction === 'descending') {
+        let minStart = n - 1;
+        let maxStart = poolLen - 1;
+        let start = minStart + Math.floor(Math.random() * (maxStart - minStart + 1));
+        for (let i = 0; i < n; i++) degrees.push(start - i);
+    } else {
+        let maxStart = poolLen - n;
+        let start = Math.floor(Math.random() * (maxStart + 1));
+        for (let i = 0; i < n; i++) degrees.push(start + i);
+    }
+    return degrees.map(d => activeScaleNotes[d]);
+}
+
 function initializeAppLayout() {
+    updateExerciseUI();
     fretStrip.innerHTML = '';
     for (let i = 0; i <= 12; i++) {
         let btn = document.createElement('div');
@@ -402,11 +494,13 @@ function nextExercise() {
     tabDisplay.style.display = 'none';
     document.querySelectorAll('.note-marker').forEach(m => { m.style.display = 'none'; m.innerText = ''; });
 
-    const totalNotesRequested = parseInt(document.getElementById('beat-count').value);
+    const exerciseType = document.getElementById('exercise-type-select').value;
+    let totalNotesRequested = parseInt(document.getElementById('beat-count').value);
+    if (exerciseType === 'three_nps') totalNotesRequested = 3;
     // Rhythm is always locked to quarter notes (on the beat) — Max Rhythm control removed for simplicity.
     const maxRhythm = 4;
     
-    if (totalNotesRequested === 1) {
+    if (totalNotesRequested === 1 && exerciseType !== 'three_nps') {
         startBtn.innerText = "Next Note";
         currentRiff = [];
         currentNote = { ...activeScaleNotes[Math.floor(Math.random() * activeScaleNotes.length)] };
@@ -464,18 +558,49 @@ function nextExercise() {
         }
         chosenSlots.sort((a, b) => a - b);
 
-        // Target authentic guitar phrases: anchor to a harmonic home base, then let the
-        // phrase-archetype engine compose the full contour around it in one pass
-        let targetRootIdx = Math.floor(Math.random() * activeScaleNotes.length);
-        let phraseDegrees = generatePhraseDegrees(chosenSlots.length, activeScaleNotes.length, targetRootIdx);
+        // Route to the right note-selection engine for the chosen exercise type. Everything
+        // downstream (rhythm slotting, playback, notation, tab rendering, pitch matching)
+        // stays exactly the same — only which notes get picked, and in what order, changes.
+        let notesForExercise;
+        if (exerciseType === 'three_nps') {
+            notesForExercise = pickThreeNotesPerStringPool();
+        } else if (exerciseType === 'scale_sequence') {
+            notesForExercise = pickScaleSequencePool(chosenSlots.length);
+        } else if (exerciseType === 'scale_run') {
+            const direction = Math.random() > 0.5 ? 'ascending' : 'descending';
+            notesForExercise = pickScaleRunPool(chosenSlots.length, direction);
+        } else {
+            // Musical Phrase: anchor to a harmonic home base, then let the phrase-archetype
+            // engine compose the full contour around it in one pass
+            let targetRootIdx = Math.floor(Math.random() * activeScaleNotes.length);
+            let phraseDegrees = generatePhraseDegrees(chosenSlots.length, activeScaleNotes.length, targetRootIdx);
+            notesForExercise = phraseDegrees.map(idx => activeScaleNotes[idx]);
+        }
+
+        if (notesForExercise.length === 0) {
+            statusDiv.innerHTML = `<span class="stage-active">Widen your fretboard range</span> — this drill needs a bit more room to work with!`;
+            listenBtn.disabled = true;
+            revealBtn.disabled = true;
+            currentStage = 'idle';
+            return;
+        }
+        if (notesForExercise.length < chosenSlots.length) {
+            chosenSlots = chosenSlots.slice(0, notesForExercise.length);
+        }
+
+        const exerciseFlavor = {
+            musical_phrase: "Lock into this groove...",
+            scale_run: "Trace your way through this run...",
+            three_nps: "Nail this string...",
+            scale_sequence: "Roll through this note group..."
+        };
 
         chosenSlots.forEach((slotIndex, i) => {
             let totalSubdivIndex = slotIndex;
             let beatIndex = Math.floor(totalSubdivIndex / subdivisionsPerBeat);
             let subDivIndex = totalSubdivIndex % subdivisionsPerBeat;
-            let currentScaleIdx = phraseDegrees[i];
 
-            let noteCopy = { ...activeScaleNotes[currentScaleIdx] };
+            let noteCopy = { ...notesForExercise[i] };
             noteCopy.rhythmType = maxRhythm;
             noteCopy.beatIndex = beatIndex;
             noteCopy.subDivIndex = subDivIndex;
@@ -487,7 +612,7 @@ function nextExercise() {
         
         currentRiffIndex = 0;
         currentStage = 'riff_tracking';
-        statusDiv.innerHTML = `<span class="stage-active">Lock into this groove...</span> Play it back note-by-note!`;
+        statusDiv.innerHTML = `<span class="stage-active">${exerciseFlavor[exerciseType] || "Lock into this groove..."}</span> Play it back note-by-note!`;
     }
 
     listenBtn.disabled = false;
