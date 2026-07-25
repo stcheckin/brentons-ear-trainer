@@ -1,5 +1,3 @@
-
-#### File 2: README.md
 # Brenton's Guitar Ear Trainer — User & Technical Manual
 
 Welcome to **Brenton's Guitar Ear Trainer**, a standalone interactive environment explicitly engineered to bridge functional pitch training with native guitar visualizations. The system generates context-aware, scale-correct intervals and tracks your microphone input in real-time, matching standard pitch configurations against standard notation systems and guitar tablature formatting.
