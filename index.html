@@ -117,13 +117,6 @@
                 <label id="beat-count-label">Total Notes to Play</label>
                 <input type="number" id="beat-count" min="1" max="16" value="4">
             </div>
-            <div class="control-group" id="direction-group" style="display:none;">
-                <label>Direction</label>
-                <select id="direction-select">
-                    <option value="ascending" selected>Ascending</option>
-                    <option value="descending">Descending</option>
-                </select>
-            </div>
             <div class="control-group">
                 <label>Click Track (Riff Mode)</label>
                 <select id="click-track-select">
@@ -242,18 +235,17 @@ const EXERCISE_INFO = {
 function updateExerciseUI() {
     const type = document.getElementById('exercise-type-select').value;
     document.getElementById('exercise-explainer').innerText = EXERCISE_INFO[type] || '';
-    document.getElementById('direction-group').style.display = (type === 'scale_run') ? 'flex' : 'none';
 
     const beatInput = document.getElementById('beat-count');
     const beatLabel = document.getElementById('beat-count-label');
     if (type === 'three_nps') {
         beatInput.value = 3;
         beatInput.disabled = true;
-        beatLabel.innerText = 'Total Notes (Fixed: 3 per string)';
+        beatLabel.innerText = 'Total Notes to Play';
     } else if (type === 'fours') {
         beatInput.value = 4;
         beatInput.disabled = true;
-        beatLabel.innerText = 'Total Notes (Fixed: group of 4)';
+        beatLabel.innerText = 'Total Notes to Play';
     } else {
         beatInput.disabled = false;
         beatLabel.innerText = 'Total Notes to Play';
@@ -576,7 +568,7 @@ function nextExercise() {
         } else if (exerciseType === 'fours') {
             notesForExercise = pickFoursPool();
         } else if (exerciseType === 'scale_run') {
-            const direction = document.getElementById('direction-select').value;
+            const direction = Math.random() > 0.5 ? 'ascending' : 'descending';
             notesForExercise = pickScaleRunPool(chosenSlots.length, direction);
         } else {
             // Musical Phrase: anchor to a harmonic home base, then let the phrase-archetype
